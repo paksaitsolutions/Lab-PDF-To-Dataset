@@ -16,16 +16,16 @@ LFT_TESTS = {
 def extract_lft(text):
     data = extract_basic_info(text)
 
-    # Flexible patterns to handle both PDF and Word formats
+    # Patterns to capture the LAST number on each line (actual result, not normal range)
     patterns = {
-        'Total Bilirubin': r'Total\s+Bilirubin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
-        'Direct Bilirubin': r'Direct\s+Bilirubin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
-        'Indirect Bilirubin': r'Indirect\s+Bilirubin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
-        'ALT': r'(?:ALT|SGPT)\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*U/L)?',
-        'AST': r'(?:AST|SGOT)\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*U/L)?',
-        'ALP': r'(?:ALP|Alkaline\s+Phosphatase)\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*U/L)?',
-        'Albumin': r'Albumin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*g/dL)?',
-        'Total Protein': r'Total\s+Protein\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*g/dL)?'
+        'Total Bilirubin': r'Total\s+Bilirubin[^\n]*?mg/dL[^\n]*?([0-9]+\.?[0-9]*)',
+        'Direct Bilirubin': r'Direct\s+Bilirubin[^\n]*?mg/dL[^\n]*?([0-9]+\.?[0-9]*)',
+        'Indirect Bilirubin': r'Indirect\s+Bilirubin[^\n]*?mg/dL[^\n]*?([0-9]+\.?[0-9]*)',
+        'ALT': r'(?:ALT|SGPT|S\.G\.P\.T\.).*?U/L[^\n]*?([0-9]+\.?[0-9]*)',
+        'AST': r'(?:AST|SGOT|S\.G\.O\.T).*?U/L[^\n]*?([0-9]+\.?[0-9]*)',
+        'ALP': r'(?:ALP|Alkaline\s+Phosphatase).*?U/L[^\n]*?([0-9]+\.?[0-9]*)',
+        'Albumin': r'Albumin[^\n]*?g/dL[^\n]*?([0-9]+\.?[0-9]*)',
+        'Total Protein': r'Total\s+Protein[^\n]*?g/dL[^\n]*?([0-9]+\.?[0-9]*)'
     }
     
     for test, pattern in patterns.items():

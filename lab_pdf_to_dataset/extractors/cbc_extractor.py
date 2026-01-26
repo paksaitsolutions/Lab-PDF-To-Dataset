@@ -18,13 +18,15 @@ CBC_TESTS = {
 }
 
 def extract_basic_info(text):
-    # Try multiple name patterns
-    name = re.search(r"Patient'?s?\s*Name\s*:?\s*([A-Za-z\s]+)", text, re.IGNORECASE)
+    # Try multiple name patterns - stop at newline or common keywords
+    name = re.search(r"Patient'?s?\s*Name\s*:?\s*([A-Za-z\s]+?)(?:\n|Registration|Lab|Age|Sample|$)", text, re.IGNORECASE)
     if not name:
-        name = re.search(r"Name\s*:?\s*([A-Za-z\s]+)", text, re.IGNORECASE)
+        name = re.search(r"Name\s*:?\s*([A-Za-z\s]+?)(?:\n|Registration|Lab|Age|Sample|$)", text, re.IGNORECASE)
     
     # Try multiple age/sex patterns
-    age_sex = re.search(r"Age[/\s]*Sex\s*:?\s*(\d+)\s*Year.*?(Male|Female)", text, re.IGNORECASE)
+    age_sex = re.search(r"Age\s*/\s*Sex\s*:?\s*(\d+)\s*Years?.*?/\s*(Male|Female)", text, re.IGNORECASE)
+    if not age_sex:
+        age_sex = re.search(r"Age[/\s]*Sex\s*:?\s*(\d+)\s*Year.*?(Male|Female)", text, re.IGNORECASE)
     if not age_sex:
         age_sex = re.search(r"Age\s*:?\s*(\d+).*?(Male|Female)", text, re.IGNORECASE)
 
@@ -41,26 +43,26 @@ def extract_cbc(text):
     for test in CBC_TESTS.keys():
         data[test] = ""
 
-    # Flexible patterns to handle both PDF and Word formats
+    # Flexible patterns - capture the LAST number on the line (the actual result)
     patterns = {
-        'HB': r'(?:HGB|Hemoglobin|HB)\s+([0-9]+\.?[0-9]*)\s*(?:g/dl|g\/dL)?',
-        'WBC': r'WBC\s*(?:Count)?\s+([0-9]+\.?[0-9]*)\s*(?:x10|×10)?',
-        'RBC': r'RBC\s*(?:Count)?\s+([0-9]+\.?[0-9]*)\s*(?:x10|×10)?',
-        'Platelets': r'(?:PLATELET|Platelets?)\s*(?:COUNT)?\s+([0-9]+)\s*(?:x10|×10)?',
-        'HCT': r'(?:HCT|Hematocrit)\s+([0-9]+\.?[0-9]*)\s*%?',
-        'MCV': r'MCV\s+([0-9]+\.?[0-9]*)\s*(?:fL|fl)?',
-        'MCH': r'MCH\s+([0-9]+\.?[0-9]*)\s*(?:pg|PG)?',
-        'MCHC': r'MCHC\s+([0-9]+\.?[0-9]*)\s*(?:g/dL|g\/dl)?',
-        'Neutrophils': r'Neutrophils?\s+([0-9]+)\s*%?',
-        'Lymphocytes': r'Lymphocytes?\s+([0-9]+)\s*%?',
-        'Monocytes': r'Monocytes?\s+([0-9]+)\s*%?',
-        'Eosinophils': r'(?:Eosinophils?|Eosinophil)\s+([0-9]+)\s*%?',
-        'ESR': r'ESR\s+([0-9]+\.?[0-9]*)'
+        'HB': r'(?:HGB|Hemoglobin|HB).*?g/dl[^\n]*?([0-9]+\.?[0-9]*)',
+        'WBC': r'(?:White Blood Cell|WBC|TLC).*?\*10[^\n]*?([0-9]+\.?[0-9]*)',
+        'RBC': r'(?:Red Blood Cell|RBC).*?\*10[^\n]*?([0-9]+\.?[0-9]*)',
+        'Platelets': r'Platelets?\s*Count.*?\*10[^\n]*?([0-9]+)',
+        'HCT': r'(?:HCT|PCV).*?%[^\n]*?([0-9]+\.?[0-9]*)',
+        'MCV': r'(?:Mean Cell Volume|MCV).*?fl[^\n]*?([0-9]+\.?[0-9]*)',
+        'MCH': r'(?:Mean Cell Hemoglobin|MCH)(?!C).*?pg[^\n]*?([0-9]+\.?[0-9]*)',
+        'MCHC': r'(?:Mean Cell.*?Conc|MCHC).*?%[^\n]*?([0-9]+\.?[0-9]*)',
+        'Neutrophils': r'Neutrophils?[^\n]*?%[^\n]*?([0-9]+\.?[0-9]*)',
+        'Lymphocytes': r'Lymphocytes?[^\n]*?%[^\n]*?([0-9]+\.?[0-9]*)',
+        'Monocytes': r'Monocytes?[^\n]*?%[^\n]*?([0-9]+\.?[0-9]*)',
+        'Eosinophils': r'Eosinophils?[^\n]*?%[^\n]*?([0-9]+\.?[0-9]*)',
+        'ESR': r'ESR[^\n]*?([0-9]+\.?[0-9]*)'
     }
     
     for test, pattern in patterns.items():
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            data[test] = match.group(1)
+            data[test] = match.group(1).strip()
 
     return data
