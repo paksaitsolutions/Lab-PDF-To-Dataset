@@ -61,10 +61,6 @@ def upload():
                     test_type = 'lft'
                 elif 'rft' in folder_lower or 'rft' in filename_lower:
                     test_type = 'rft'
-                else:
-                    # Default to CBC if no type specified
-                    test_type = 'cbc'
-                    print(f"Warning: No test type found for {f}, defaulting to CBC")
                 
                 # Extract data
                 row = None
@@ -72,7 +68,20 @@ def upload():
                     if ext.endswith('.pdf'):
                         text = read_pdf_text(file_path)
                         print(f"\n=== PDF: {f} ===")
-                        print(f"Text extracted (first 500 chars): {text[:500]}")
+                        
+                        # Auto-detect test type from content if not specified
+                        if not test_type:
+                            if any(keyword in text.lower() for keyword in ['hemoglobin', 'hematology', 'complete blood count', 'wbc', 'rbc']):
+                                test_type = 'cbc'
+                            elif any(keyword in text.lower() for keyword in ['liver function', 'bilirubin', 'sgpt', 'sgot', 'alt', 'ast']):
+                                test_type = 'lft'
+                            elif any(keyword in text.lower() for keyword in ['renal function', 'kidney', 'creatinine', 'urea', 'bun']):
+                                test_type = 'rft'
+                            else:
+                                print(f"⚠️ Skipping {f} - Unknown test type")
+                                continue
+                        
+                        print(f"Detected test type: {test_type}")
                         if test_type == 'cbc':
                             row = extract_cbc(text)
                         elif test_type == 'lft':
