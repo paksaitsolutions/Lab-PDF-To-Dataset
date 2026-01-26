@@ -1,0 +1,9 @@
+pdfplumber
+pandas
+openpyxl
+pytesseract
+pillow
+flask
+flask-cors
+python-docx
+pywin32
