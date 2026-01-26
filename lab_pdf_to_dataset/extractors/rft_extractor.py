@@ -13,13 +13,13 @@ RFT_TESTS = {
 def extract_rft(text):
     data = extract_basic_info(text)
 
-    # More specific patterns to get result value (not normal range)
+    # Flexible patterns to handle both PDF and Word formats
     patterns = {
-        'Urea': r'Urea\s+([0-9]+\.?[0-9]*)\s*(?:mg/dL|\s)',
-        'BUN': r'BUN\s+([0-9]+\.?[0-9]*)\s*(?:mg/dL|\s)',
-        'Creatinine': r'Creatinine\s+([0-9]+\.?[0-9]*)\s*(?:mg/dL|\s)',
-        'GFR': r'GFR\s+([0-9]+\.?[0-9]*)\s*(?:mL/min|\s)',
-        'Uric Acid': r'Uric\s+Acid\s+([0-9]+\.?[0-9]*)\s*(?:mg/dL|\s)'
+        'Urea': r'Urea\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
+        'BUN': r'BUN\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
+        'Creatinine': r'Creatinine\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
+        'GFR': r'GFR\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mL/min)?',
+        'Uric Acid': r'Uric\s+Acid\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?'
     }
     
     for test, pattern in patterns.items():

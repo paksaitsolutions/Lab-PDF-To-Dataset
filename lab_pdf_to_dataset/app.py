@@ -50,28 +50,36 @@ def upload():
                 file_path = os.path.join(root, f)
                 folder = root.lower()
                 
-                # Determine test type from folder
+                # Determine test type from folder or filename
                 test_type = None
-                if 'cbc' in folder or 'cbd' in folder:
+                folder_lower = folder.lower()
+                filename_lower = f.lower()
+                
+                if 'cbc' in folder_lower or 'cbd' in folder_lower or 'cbc' in filename_lower:
                     test_type = 'cbc'
-                elif 'lft' in folder:
+                elif 'lft' in folder_lower or 'lft' in filename_lower:
                     test_type = 'lft'
-                elif 'rft' in folder:
+                elif 'rft' in folder_lower or 'rft' in filename_lower:
                     test_type = 'rft'
                 else:
-                    continue
+                    # Default to CBC if no type specified
+                    test_type = 'cbc'
+                    print(f"Warning: No test type found for {f}, defaulting to CBC")
                 
                 # Extract data
                 row = None
                 try:
                     if ext.endswith('.pdf'):
                         text = read_pdf_text(file_path)
+                        print(f"\n=== PDF: {f} ===")
+                        print(f"Text extracted (first 500 chars): {text[:500]}")
                         if test_type == 'cbc':
                             row = extract_cbc(text)
                         elif test_type == 'lft':
                             row = extract_lft(text)
                         elif test_type == 'rft':
                             row = extract_rft(text)
+                        print(f"Extracted row: {row}")
                     else:
                         # Word file - try table extraction first
                         print(f"Processing Word file: {f}")
@@ -91,7 +99,7 @@ def upload():
                                 row = extract_rft(text)
                             print(f"Text extraction result: {row}")
                     
-                    if row:
+                    if row and any(v for k, v in row.items() if k not in ['Name', 'Age', 'Gender', 'Source_PDF']):
                         row['Source_PDF'] = f
                         if test_type == 'cbc':
                             cbc_rows.append(row)
@@ -100,6 +108,9 @@ def upload():
                         elif test_type == 'rft':
                             rft_rows.append(row)
                         processed_files += 1
+                        print(f"✅ Successfully extracted data from {f}")
+                    else:
+                        print(f"⚠️ No test values extracted from {f}")
                 except Exception as e:
                     print(f"Error processing {f}: {e}")
                     continue

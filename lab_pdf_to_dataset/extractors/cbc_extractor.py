@@ -18,8 +18,15 @@ CBC_TESTS = {
 }
 
 def extract_basic_info(text):
-    name = re.search(r"Patient Name:\s*([A-Z\s]+)", text)
-    age_sex = re.search(r"Age\s*/\s*Sex:\s*(\d+).*?(Male|Female)", text)
+    # Try multiple name patterns
+    name = re.search(r"Patient'?s?\s*Name\s*:?\s*([A-Za-z\s]+)", text, re.IGNORECASE)
+    if not name:
+        name = re.search(r"Name\s*:?\s*([A-Za-z\s]+)", text, re.IGNORECASE)
+    
+    # Try multiple age/sex patterns
+    age_sex = re.search(r"Age[/\s]*Sex\s*:?\s*(\d+)\s*Year.*?(Male|Female)", text, re.IGNORECASE)
+    if not age_sex:
+        age_sex = re.search(r"Age\s*:?\s*(\d+).*?(Male|Female)", text, re.IGNORECASE)
 
     return {
         "Name": name.group(1).strip() if name else "",
@@ -34,21 +41,21 @@ def extract_cbc(text):
     for test in CBC_TESTS.keys():
         data[test] = ""
 
-    # More specific patterns to get result value (not normal range)
+    # Flexible patterns to handle both PDF and Word formats
     patterns = {
-        'HB': r'(?:HGB|Hemoglobin|HB)\s+([0-9]+\.?[0-9]*)\s*(?:g/dl|\s)',
-        'WBC': r'WBC\s+(?:Count)?\s*([0-9]+\.?[0-9]*)',
-        'RBC': r'RBC\s+(?:Count)?\s*([0-9]+\.?[0-9]*)',
-        'Platelets': r'(?:PLATELET|Platelets)\s+(?:COUNT)?\s*([0-9]+)',
+        'HB': r'(?:HGB|Hemoglobin|HB)\s+([0-9]+\.?[0-9]*)\s*(?:g/dl|g\/dL)?',
+        'WBC': r'WBC\s*(?:Count)?\s+([0-9]+\.?[0-9]*)\s*(?:x10|×10)?',
+        'RBC': r'RBC\s*(?:Count)?\s+([0-9]+\.?[0-9]*)\s*(?:x10|×10)?',
+        'Platelets': r'(?:PLATELET|Platelets?)\s*(?:COUNT)?\s+([0-9]+)\s*(?:x10|×10)?',
         'HCT': r'(?:HCT|Hematocrit)\s+([0-9]+\.?[0-9]*)\s*%?',
-        'MCV': r'MCV\s+([0-9]+\.?[0-9]*)\s*(?:fL|\s)',
-        'MCH': r'MCH\s+([0-9]+\.?[0-9]*)\s*(?:pg|\s)',
-        'MCHC': r'MCHC\s+([0-9]+\.?[0-9]*)\s*(?:g/dL|\s)',
-        'Neutrophils': r'Neutrophils\s+([0-9]+)',
-        'Lymphocytes': r'Lymphocytes\s+([0-9]+)',
-        'Monocytes': r'Monocytes\s+([0-9]+)',
-        'Eosinophils': r'(?:Eosinophils|Eosinophil)\s+([0-9]+)',
-        'ESR': r'ESR\s+([0-9]+)'
+        'MCV': r'MCV\s+([0-9]+\.?[0-9]*)\s*(?:fL|fl)?',
+        'MCH': r'MCH\s+([0-9]+\.?[0-9]*)\s*(?:pg|PG)?',
+        'MCHC': r'MCHC\s+([0-9]+\.?[0-9]*)\s*(?:g/dL|g\/dl)?',
+        'Neutrophils': r'Neutrophils?\s+([0-9]+)\s*%?',
+        'Lymphocytes': r'Lymphocytes?\s+([0-9]+)\s*%?',
+        'Monocytes': r'Monocytes?\s+([0-9]+)\s*%?',
+        'Eosinophils': r'(?:Eosinophils?|Eosinophil)\s+([0-9]+)\s*%?',
+        'ESR': r'ESR\s+([0-9]+\.?[0-9]*)'
     }
     
     for test, pattern in patterns.items():

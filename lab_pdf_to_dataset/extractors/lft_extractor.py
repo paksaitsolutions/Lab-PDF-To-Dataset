@@ -16,16 +16,16 @@ LFT_TESTS = {
 def extract_lft(text):
     data = extract_basic_info(text)
 
-    # More specific patterns to get result value (not normal range)
+    # Flexible patterns to handle both PDF and Word formats
     patterns = {
-        'Total Bilirubin': r'Total\s+Bilirubin\s+([0-9]+\.?[0-9]*)\s*(?:mg/dL|\s)',
-        'Direct Bilirubin': r'Direct\s+Bilirubin\s+([0-9]+\.?[0-9]*)\s*(?:mg/dL|\s)',
-        'Indirect Bilirubin': r'Indirect\s+Bilirubin\s+([0-9]+\.?[0-9]*)\s*(?:mg/dL|\s)',
-        'ALT': r'(?:ALT|SGPT)\s+([0-9]+\.?[0-9]*)\s*(?:U/L|\s)',
-        'AST': r'(?:AST|SGOT)\s+([0-9]+\.?[0-9]*)\s*(?:U/L|\s)',
-        'ALP': r'(?:ALP|Alkaline\s+Phosphatase)\s+([0-9]+\.?[0-9]*)\s*(?:U/L|\s)',
-        'Albumin': r'Albumin\s+([0-9]+\.?[0-9]*)\s*(?:g/dL|\s)',
-        'Total Protein': r'Total\s+Protein\s+([0-9]+\.?[0-9]*)\s*(?:g/dL|\s)'
+        'Total Bilirubin': r'Total\s+Bilirubin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
+        'Direct Bilirubin': r'Direct\s+Bilirubin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
+        'Indirect Bilirubin': r'Indirect\s+Bilirubin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*mg/dL)?',
+        'ALT': r'(?:ALT|SGPT)\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*U/L)?',
+        'AST': r'(?:AST|SGOT)\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*U/L)?',
+        'ALP': r'(?:ALP|Alkaline\s+Phosphatase)\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*U/L)?',
+        'Albumin': r'Albumin\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*g/dL)?',
+        'Total Protein': r'Total\s+Protein\s*:?\s*([0-9]+\.?[0-9]*)(?:\s*g/dL)?'
     }
     
     for test, pattern in patterns.items():
