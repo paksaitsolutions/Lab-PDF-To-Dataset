@@ -6,6 +6,7 @@ export default function UploadBox() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [testTypes, setTestTypes] = useState({ cbc: true, lft: true, rft: true });
 
   const handleUpload = async () => {
     if (!files.length) return alert("Select file(s)");
@@ -15,7 +16,7 @@ export default function UploadBox() {
     setResult(null);
     
     try {
-      const res = await uploadFiles(files);
+      const res = await uploadFiles(files, testTypes);
       if (res.success) {
         setResult(res);
       } else {
@@ -27,6 +28,14 @@ export default function UploadBox() {
     setLoading(false);
   };
 
+  const handleClear = () => {
+    setFiles([]);
+    setResult(null);
+    setError(null);
+    setTestTypes({ cbc: true, lft: true, rft: true });
+    document.querySelector('input[type="file"]').value = '';
+  };
+
   return (
     <div className="card">
       <input
@@ -36,9 +45,29 @@ export default function UploadBox() {
         onChange={e => setFiles([...e.target.files])}
       />
 
-      <button onClick={handleUpload} disabled={loading}>
-        {loading ? "Processing..." : "Upload"}
-      </button>
+      <div style={{margin: '15px 0'}}>
+        <label style={{marginRight: '15px'}}>
+          <input type="checkbox" checked={testTypes.cbc} onChange={e => setTestTypes({...testTypes, cbc: e.target.checked})} />
+          {' '}CBC
+        </label>
+        <label style={{marginRight: '15px'}}>
+          <input type="checkbox" checked={testTypes.lft} onChange={e => setTestTypes({...testTypes, lft: e.target.checked})} />
+          {' '}LFT
+        </label>
+        <label>
+          <input type="checkbox" checked={testTypes.rft} onChange={e => setTestTypes({...testTypes, rft: e.target.checked})} />
+          {' '}RFT
+        </label>
+      </div>
+
+      <div style={{display: 'flex', gap: '10px'}}>
+        <button onClick={handleUpload} disabled={loading}>
+          {loading ? "Processing..." : "Upload"}
+        </button>
+        <button onClick={handleClear} disabled={loading} style={{background: '#6b7280'}}>
+          Clear
+        </button>
+      </div>
 
       {loading && <p>⏳ Processing files...</p>}
       

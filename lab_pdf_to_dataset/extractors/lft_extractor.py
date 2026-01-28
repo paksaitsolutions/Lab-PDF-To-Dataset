@@ -16,23 +16,31 @@ LFT_TESTS = {
 def extract_lft(text):
     data = extract_basic_info(text)
 
-    # Patterns to capture the LAST number on each line (actual result, not normal range)
-    patterns = {
-        'Total Bilirubin': r'Total\s+Bilirubin[^\n]*?mg/dL[^\n]*?([0-9]+\.?[0-9]*)',
-        'Direct Bilirubin': r'Direct\s+Bilirubin[^\n]*?mg/dL[^\n]*?([0-9]+\.?[0-9]*)',
-        'Indirect Bilirubin': r'Indirect\s+Bilirubin[^\n]*?mg/dL[^\n]*?([0-9]+\.?[0-9]*)',
-        'ALT': r'(?:ALT|SGPT|S\.G\.P\.T\.).*?U/L[^\n]*?([0-9]+\.?[0-9]*)',
-        'AST': r'(?:AST|SGOT|S\.G\.O\.T).*?U/L[^\n]*?([0-9]+\.?[0-9]*)',
-        'ALP': r'(?:ALP|Alkaline\s+Phosphatase).*?U/L[^\n]*?([0-9]+\.?[0-9]*)',
-        'Albumin': r'Albumin[^\n]*?g/dL[^\n]*?([0-9]+\.?[0-9]*)',
-        'Total Protein': r'Total\s+Protein[^\n]*?g/dL[^\n]*?([0-9]+\.?[0-9]*)'
-    }
+    def extract_value(test_name):
+        # Find test line and next 2-3 lines (covers all formats)
+        match = re.search(rf'{test_name}[^\n]*(?:\n[^\n]*?){{0,3}}', text, re.IGNORECASE | re.DOTALL)
+        if not match:
+            return ""
+        
+        section = match.group(0)
+        
+        # Find all standalone numbers (not part of "X - Y" or "X-Y" ranges)
+        # Use negative lookbehind and lookahead to avoid range numbers
+        numbers = re.findall(r'(?<![-\d])([0-9]+\.?[0-9]+)(?!\s*-\s*[0-9])', section)
+        
+        if not numbers:
+            return ""
+        
+        # Return the LAST number (result appears after reference ranges)
+        return numbers[-1]
     
-    for test, pattern in patterns.items():
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            data[test] = match.group(1)
-        else:
-            data[test] = ""
+    data['Total Bilirubin'] = extract_value(r'(?:Bilirubin\s+Total|Total\s+Bilirubin)')
+    data['Direct Bilirubin'] = extract_value(r'(?:Direct\s+Bilirubin|Bilirubin\s+Conjugated)')
+    data['Indirect Bilirubin'] = extract_value(r'(?:Indirect\s+Bilirubin|Bilirubin\s+Unconjugated)')
+    data['ALT'] = extract_value(r'(?:SGPT|S\.G\.P\.T|ALT)')
+    data['AST'] = extract_value(r'(?:SGOT|S\.G\.O\.T|AST)')
+    data['ALP'] = extract_value(r'(?:Alkaline\s+Phosphatase|ALP)')
+    data['Albumin'] = extract_value(r'Albumin')
+    data['Total Protein'] = extract_value(r'Total\s+Protein')
 
     return data
