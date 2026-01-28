@@ -1,279 +1,122 @@
-# CBC (Complete Blood Count) Extractor
+# CBC Extractor - Hybrid: handles same-line and next-line results
 import re
 
-CBC_TESTS = {
-    "HB": ["Hemoglobin", "HB"],
-    "RBC": ["RBC", "Red Blood Cell"],
-    "HCT": ["Hematocrit", "HCT"],
-    "MCV": ["MCV"],
-    "MCH": ["MCH"],
-    "MCHC": ["MCHC"],
-    "Platelets": ["Platelets"],
-    "WBC": ["WBC", "TLC"],
-    "Neutrophils": ["Neutrophils"],
-    "Lymphocytes": ["Lymphocytes"],
-    "Monocytes": ["Monocytes"],
-    "Eosinophils": ["Eosinophil"],
-    "ESR": ["ESR"]
-}
-
 def extract_basic_info(text):
-    # Pattern 1: Name on next line after "Patient Name:" (common in multi-column layouts)
-    name = re.search(r"Patient\s*Name\s*:[^\n]*\n\s*([A-Za-z\s\.]+?)(?:\s{2,}|\n)", text, re.IGNORECASE)
-    
+    # Try multiple name patterns - stop at Sample, Registered, Age
+    name = re.search(r"Patient\s*Name\s*:\s*([A-Z][A-Za-z\s\.]+?)(?:\s{2,}|\n|Age|Registration|Sample)", text, re.IGNORECASE)
     if not name:
-        # Pattern 2: Name on same line
-        name = re.search(r"Patient\s*Name\s*:\s*([A-Za-z\s\.]+?)(?:\s{2,}|\n)", text, re.IGNORECASE)
+        name = re.search(r"Name\s*:\s*([A-Z][A-Za-z\s\.]+?)(?:\s{2,}|\n|Registered|Age|F/H|Sample)", text, re.IGNORECASE)
     if not name:
-        name = re.search(r"Patient'?s?\s*Name\s*:?\s*([A-Za-z\s\.]+?)(?:\n|Registration|Lab|Age|Sample|$)", text, re.IGNORECASE)
-    if not name:
-        name = re.search(r"Name\s*:?\s*([A-Za-z\s\.]+?)(?:\n|Registration|Lab|Age|Sample|$)", text, re.IGNORECASE)
+        name = re.search(r"Patient['\"]?s?\s+Name\s*:?\s*([A-Z][A-Za-z\s\.]+?)(?:Sample|Registered|Age)", text, re.IGNORECASE)
     
-    # Try direct Age/Sex pattern first: "Age/Sex: 18 Yr(s) / Male"
-    age_sex = re.search(r"Age/Sex\s*:\s*(\d+)\s*Yr\(s\)\s*/\s*(Male|Female)", text, re.IGNORECASE)
+    # Try Age/Gender patterns
+    age_sex = re.search(r"Age\s*/\s*(?:Sex|Gender)\s*:\s*(\d+)\s*(?:Year|Yr).*?/\s*(Male|Female|M|F)", text, re.IGNORECASE)
     if not age_sex:
-        age_sex = re.search(r"Age\s*/\s*Sex\s*:\s*(\d+)\s*Yr\(s\)\s*/\s*(Male|Female)", text, re.IGNORECASE)
+        age_sex = re.search(r"Age/Gender\s*:\s*(\d+)\s*years?\s*/\s*(Male|Female|M|F)", text, re.IGNORECASE)
     if not age_sex:
-        age_sex = re.search(r"Age\s*/\s*Sex\s*:\s*(\d+)\s*Years?\s*/\s*(Male|Female)", text, re.IGNORECASE)
-    if not age_sex:
-        age_sex = re.search(r"Age[/\s]*Sex\s*:\s*(\d+)\s*Year.*?/\s*(Male|Female)", text, re.IGNORECASE)
+        age_sex = re.search(r"Age\s*:\s*(\d+).*?(?:Sex|Gender)\s*:\s*(Male|Female|M|F)", text, re.IGNORECASE)
     
-    if age_sex:
-        age = age_sex.group(1)
-        gender = age_sex.group(2)
-    else:
-        # Pattern for Age/Sex on next line (multi-column layouts)
-        age_sex_line = re.search(r"Age/Sex\s*:[^\n]*\n\s*([^\n]+)", text, re.IGNORECASE)
-        
-        if age_sex_line:
-            age_match = re.search(r"(\d+)\s*Yr\(s\)\s*/\s*(Male|Female)", age_sex_line.group(1), re.IGNORECASE)
-            if not age_match:
-                age_match = re.search(r"(\d+)\s*Year\(s\)\s*/\s*(Male|Female)", age_sex_line.group(1), re.IGNORECASE)
-            if not age_match:
-                age_match = re.search(r"(\d+)\s*Yr\\?\(s\)\s*/\s*(Male|Female)", age_sex_line.group(1), re.IGNORECASE)
-            if age_match:
-                age = age_match.group(1)
-                gender = age_match.group(2)
-            else:
-                age = ""
-                gender = ""
-        else:
-            age = ""
-            gender = ""
-
     return {
         "Name": name.group(1).strip().rstrip('.').strip() if name else "",
-        "Age": age,
-        "Gender": gender
+        "Age": age_sex.group(1) if age_sex else "",
+        "Gender": age_sex.group(2) if age_sex else ""
     }
 
 def extract_cbc(text):
     data = extract_basic_info(text)
     
-    # Initialize all fields as empty
-    for test in CBC_TESTS.keys():
+    for test in ["HB", "RBC", "HCT", "MCV", "MCH", "MCHC", "Platelets", "WBC", 
+                 "Neutrophils", "Lymphocytes", "Monocytes", "Eosinophils", "ESR"]:
         data[test] = ""
-
-    # Try table-based extraction first (more accurate for structured PDFs)
-    table_data = extract_from_table_format(text)
-    if table_data:
-        data.update(table_data)
-        # If we got good data from table, return it
-        if sum(1 for v in table_data.values() if v) >= 5:  # At least 5 fields extracted
-            return data
     
-    # Fallback to regex patterns
-    extract_with_patterns(text, data)
-    return data
-
-def extract_from_table_format(text):
-    """Extract CBC values from table-like text structure"""
-    data = {}
     lines = text.split('\n')
     
+    # Test definitions
+    test_defs = [
+        (r'hemoglobin.*\bhb\b|\bhb\b.*hemoglobin', 'HB', 5.0, 20.0, ['hba1c']),
+        (r'red blood cell|\brbc\b|total rbc', 'RBC', 2.0, 7.0, []),
+        (r'hematocrit|hct\b|pcv\b', 'HCT', 20.0, 60.0, ['mchc']),
+        (r'mean cell volume|mcv\b', 'MCV', 50.0, 110.0, ['mchc']),
+        (r'mean cell hemoglobin|\bmch\b(?!c)', 'MCH', 15.0, 40.0, []),
+        (r'mean cell.*conc|mchc\b', 'MCHC', 25.0, 37.0, []),
+        (r'platelet', 'Platelets', 50, 1000, []),
+        (r'white blood cell|wbc\b|tlc\b', 'WBC', 2.0, 30.0, []),
+        (r'neutrophil', 'Neutrophils', 10.0, 95.0, []),
+        (r'lymphocyte', 'Lymphocytes', 5.0, 90.0, []),
+        (r'monocyte', 'Monocytes', 1.0, 15.0, []),
+        (r'eosinophil', 'Eosinophils', 0.0, 10.0, []),
+        (r'\besr\b', 'ESR', 0, 100, ['test'])
+    ]
+    
+    # Collect tests with line numbers
+    tests_found = []
     for i, line in enumerate(lines):
-        line_lower = line.lower().strip()
+        line_lower = line.lower()
+        for pattern, test_name, min_val, max_val, exclusions in test_defs:
+            if re.search(pattern, line_lower):
+                if any(excl in line_lower for excl in exclusions):
+                    continue
+                if not any(t[0] == test_name for t in tests_found):
+                    tests_found.append((test_name, min_val, max_val, i, line))
+                break
+    
+    if not tests_found:
+        return data
+    
+    # Try to extract values from same line first
+    for test_name, min_val, max_val, line_num, line in tests_found:
+        # Get rightmost numbers from test line
+        numbers = re.findall(r'\b(\d+\.?\d*)\b', line)
         
-        # Look for test names and extract the last number on the line (the result)
-        # Pattern: Test_Name ... Reference_Range ... Unit ... Result_Value
+        for num in reversed(numbers):
+            # Skip if DIRECTLY part of a range (number-number pattern)
+            if re.search(r'\d+\.?\d*\s*[-–]\s*' + re.escape(num) + r'(?!\d)', line) or \
+               re.search(r'(?<!\d)' + re.escape(num) + r'\s*[-–]\s*\d+\.?\d*', line):
+                continue
+            
+            try:
+                val = float(num)
+                if min_val <= val <= max_val:
+                    data[test_name] = num
+                    break
+            except:
+                pass
+    
+    # For tests still missing values, collect from next-line vertical column
+    missing_tests = [(t, mn, mx, ln) for t, mn, mx, ln, _ in tests_found if not data[t]]
+    
+    if missing_tests:
+        # Collect values from lines between tests (non-test lines)
+        test_line_nums = {t[3] for t in tests_found}
+        start_line = tests_found[0][3]
+        end_line = tests_found[-1][3] + 3
         
-        if 'hemoglobin' in line_lower and 'hb' in line_lower:
-            if 'hba1c' not in line_lower and 'hbsag' not in line_lower:
-                match = re.search(r'[↓↑]?\s*(\d+\.\d+)\s*$', line)
-                if match:
-                    data['HB'] = match.group(1)
+        next_line_values = []
+        for i in range(start_line, min(end_line, len(lines))):
+            if i in test_line_nums:
+                continue
+            
+            line = lines[i]
+            if len(line) < 50:
+                continue
+            
+            # Get rightmost number
+            right_part = line[-40:]
+            numbers = re.findall(r'\b(\d+\.?\d*)\b', right_part)
+            if numbers:
+                num = numbers[-1]
+                if not re.search(r'\d+\.?\d*\s*[-–]\s*' + re.escape(num) + r'(?!\d)', right_part) and \
+                   not re.search(r'(?<!\d)' + re.escape(num) + r'\s*[-–]\s*\d+\.?\d*', right_part):
+                    next_line_values.append(num)
         
-        elif line_lower.startswith('hb') and 'hba1c' not in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['HB'] = match.group(1)
-        
-        elif 'red blood cell' in line_lower and 'rbc' in line_lower:
-            match = re.search(r'(\d+\.\d+)\s*$', line)
-            if match:
-                data['RBC'] = match.group(1)
-        
-        elif line_lower.startswith('rbc') or line_lower.startswith('total rbc'):
-            match = re.search(r'(\d+\.\d+)\s*$', line)
-            if match:
-                data['RBC'] = match.group(1)
-        
-        elif 'tlc' in line_lower and not data.get('WBC'):
-            match = re.search(r'(\d+\.\d+)\s*$', line)
-            if match:
-                data['WBC'] = match.group(1)
-        
-        elif 'hematocrit' in line_lower and 'hct' in line_lower:
-            match = re.search(r'[↓↑]?\s*(\d+\.\d+)\s*$', line)
-            if match:
-                data['HCT'] = match.group(1)
-        
-        elif line_lower.startswith('hct') or line_lower.startswith('hematocrit'):
-            match = re.search(r'[↓↑]?\s*(\d+\.?\d*)\s*$', line)
-            if match:
-                data['HCT'] = match.group(1)
-        
-        elif 'mean cell volume' in line_lower and 'mcv' in line_lower:
-            match = re.search(r'(\d+\.\d+)\s*$', line)
-            if match:
-                data['MCV'] = match.group(1)
-        
-        elif line_lower.startswith('mcv') and 'mchc' not in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['MCV'] = match.group(1)
-        
-        elif 'mean cell hemoglobin' in line_lower and 'mch' in line_lower and 'mchc' not in line_lower:
-            match = re.search(r'(\d+\.\d+)\s*$', line)
-            if match:
-                data['MCH'] = match.group(1)
-        
-        elif line_lower.startswith('mch') and 'mchc' not in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['MCH'] = match.group(1)
-        
-        elif 'mean cell hb conc' in line_lower or ('mchc' in line_lower and 'mean' in line_lower):
-            match = re.search(r'(\d+\.\d+)\s*$', line)
-            if match:
-                data['MCHC'] = match.group(1)
-        
-        elif line_lower.startswith('mchc'):
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['MCHC'] = match.group(1)
-        
-        elif 'platelets count' in line_lower or 'platelet count' in line_lower:
-            match = re.search(r'(\d+)\s*$', line)
-            if match:
-                data['Platelets'] = match.group(1)
-        
-        elif 'white blood cell' in line_lower and ('wbc' in line_lower or 'tlc' in line_lower):
-            match = re.search(r'(\d+\.\d+)\s*$', line)
-            if match:
-                data['WBC'] = match.group(1)
-        
-        elif line_lower.startswith('wbc') and not data.get('WBC'):
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['WBC'] = match.group(1)
-        
-        elif 'neutrophil' in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['Neutrophils'] = match.group(1)
-        
-        elif 'lymphocyte' in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['Lymphocytes'] = match.group(1)
-        
-        elif 'monocyte' in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['Monocytes'] = match.group(1)
-        
-        elif 'eosinophil' in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['Eosinophils'] = match.group(1)
-        
-        elif 'esr' in line_lower:
-            match = re.search(r'(\d+\.?\d*)\s*$', line)
-            if match:
-                data['ESR'] = match.group(1)
+        # Map to missing tests by position
+        for idx, (test_name, min_val, max_val, _) in enumerate(missing_tests):
+            if idx < len(next_line_values):
+                try:
+                    val = float(next_line_values[idx])
+                    if min_val <= val <= max_val:
+                        data[test_name] = next_line_values[idx]
+                except:
+                    pass
     
     return data
-
-def extract_with_patterns(text, data):
-    """Extract using regex patterns as fallback"""
-    # Flexible patterns - capture the result value after the unit
-    # Pattern strategy: Look for test name, then unit, then capture the LAST number on that section
-    patterns = {
-        'HB': [
-            r'(?:HGB|Hemoglobin|Hb)\s+[\d\s\-\.]+\s+g/dl\s+([0-9]+\.?[0-9]*)',
-            r'(?:HGB|Hemoglobin|Hb)[^\n]*?g/dl[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'WBC': [
-            r'(?:WBC|TLC|White Blood Cell)\s*(?:Count)?\s+[\d\s\-\.]+\s+[x\*]10\^?\d+[/\s]*[lL]\s+([0-9]+\.?[0-9]*)',
-            r'(?:WBC|TLC|White Blood Cell)[^\n]*?[x\*]10\^?\d+[/\s]*[lL][\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'RBC': [
-            r'(?:Total\s+)?(?:RBC|Red Blood Cell)\s+[\d\s\-\.]+\s+[x\*]10\^?\d+[/\s]*[lL]\s+([0-9]+\.?[0-9]*)',
-            r'(?:Total\s+)?(?:RBC|Red Blood Cell)[^\n]*?[x\*]10\^?\d+[/\s]*[lL][\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'Platelets': [
-            r'Platelets?\s*Count\s+[\d\s\-\.]+\s+[x\*]10\^?\d+[/\s]*[lL]\s+([0-9]+)',
-            r'Platelets?\s*Count[^\n]*?[x\*]10\^?\d+[/\s]*[lL][\s\n]+([0-9]+)'
-        ],
-        'HCT': [
-            r'(?:HCT|PCV|Hematocrit)\s+[\d\s\-\.]+\s+%\s+([0-9]+\.?[0-9]*)',
-            r'(?:HCT|PCV|Hematocrit)[^\n]*?%[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'MCV': [
-            r'MCV\s+[\d\s\-\.]+\s+fl\s+([0-9]+\.?[0-9]*)',
-            r'(?:Mean Cell Volume|MCV)[^\n]*?fl[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'MCH': [
-            r'MCH(?!C)\s+[\d\s\-\.]+\s+pg\s+([0-9]+\.?[0-9]*)',
-            r'(?:Mean Cell Hemoglobin|MCH)(?!C)[^\n]*?pg[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'MCHC': [
-            r'MCHC\s+[\d\s\-\.]+\s+(?:g/dl|%)\s+([0-9]+\.?[0-9]*)',
-            r'(?:Mean Cell.*?Conc|MCHC)[^\n]*?(?:g/dl|%)[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'Neutrophils': [
-            r'Neutrophils?\s+[\d\s\-\.]+\s+%\s+([0-9]+\.?[0-9]*)',
-            r'Neutrophils?[^\n]*?%[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'Lymphocytes': [
-            r'Lymphocytes?\s+[\d\s\-\.]+\s+%\s+([0-9]+\.?[0-9]*)',
-            r'Lymphocytes?[^\n]*?%[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'Monocytes': [
-            r'Monocytes?\s+[\d\s\-\.]+\s+%\s+([0-9]+\.?[0-9]*)',
-            r'Monocytes?[^\n]*?%[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'Eosinophils': [
-            r'Eosinophils?\s+[\d\s\-\.]+\s+%\s+([0-9]+\.?[0-9]*)',
-            r'Eosinophils?[^\n]*?%[\s\n]+([0-9]+\.?[0-9]*)'
-        ],
-        'ESR': [
-            r'ESR[^\n]*?([0-9]+\.?[0-9]*)'
-        ]
-    }
-    
-    for test, pattern_list in patterns.items():
-        # Skip if already extracted by table method
-        if data.get(test):
-            continue
-            
-        # Try each pattern until one matches
-        if isinstance(pattern_list, str):
-            pattern_list = [pattern_list]
-        
-        for pattern in pattern_list:
-            match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-            if match:
-                data[test] = match.group(1).strip()
-                break

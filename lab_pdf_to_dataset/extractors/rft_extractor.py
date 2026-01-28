@@ -1,77 +1,95 @@
-# RFT (Renal Function Test) Extractor
+# RFT Extractor - Hybrid approach
 import re
 from extractors.cbc_extractor import extract_basic_info
 
-RFT_TESTS = {
-    "Urea": ["Urea"],
-    "BUN": ["BUN"],
-    "Creatinine": ["Creatinine"],
-    "GFR": ["GFR"],
-    "Uric Acid": ["Uric Acid"]
-}
-
 def extract_rft(text):
     data = extract_basic_info(text)
-
-    def extract_value(test_name):
-        match = re.search(rf'{test_name}.*?(?=\n|$)', text, re.IGNORECASE | re.DOTALL)
-        if not match:
-            return ""
-        
-        line = match.group(0)
-        
-        # Simple logic: Get the LAST number on the line (usually the result)
-        numbers = re.findall(r'([0-9]+\.?[0-9]*)', line)
-        return numbers[-1] if numbers else ""
     
-    data['Urea'] = extract_value(r'Urea')
-    data['BUN'] = extract_value(r'BUN')
-    data['Creatinine'] = extract_value(r'Creatinine')
+    for test in ["Urea", "BUN", "Creatinine", "GFR", "Uric Acid"]:
+        data[test] = ""
     
-    # GFR: Simple logic - find "mL/min" and get number before it
-    gfr_match = re.search(r'(?:Glomerular\s+Filtration|GFR).*?(?=\n|$)', text, re.IGNORECASE | re.DOTALL)
-    if gfr_match:
-        gfr_line = gfr_match.group(0)
-        
-        # Find "mL/min" position
-        ml_pos = gfr_line.lower().find('ml/min')
-        if ml_pos > 0:
-            # Get text before mL/min
-            before_unit = gfr_line[:ml_pos]
-            # Get text after mL/min
-            after_unit = gfr_line[ml_pos+6:]
-            
-            # Extract numbers from before unit
-            before_nums = re.findall(r'(\d+)', before_unit)
-            # Extract numbers from after unit
-            after_nums = re.findall(r'(\d+)', after_unit)
-            
-            # Logic: If there's a number after unit and it's > 10, use it
-            # Otherwise use last number before unit
-            if after_nums:
-                # Get first number after unit that's > 10 and < 1000
-                # Skip numbers that are part of decimals (preceded by .)
-                for i, num in enumerate(after_nums):
-                    if 10 < int(num) < 1000:
-                        # Check if this number is part of a decimal like "1.73"
-                        num_pos = after_unit.find(num)
-                        if num_pos > 0 and after_unit[num_pos-1] == '.':
-                            continue  # Skip, it's part of a decimal
-                        data['GFR'] = num
-                        break
-            
-            if not data.get('GFR') and before_nums:
-                # Use last number before unit that's > 10 and < 1000
-                for num in reversed(before_nums):
-                    if 10 < int(num) < 1000:
-                        data['GFR'] = num
-                        break
-        
-        if not data.get('GFR'):
-            data['GFR'] = ""
-    else:
-        data['GFR'] = ""
+    lines = text.split('\n')
     
-    data['Uric Acid'] = extract_value(r'Uric\s+Acid')
-
+    # Test definitions with validation ranges
+    test_defs = [
+        (r'\burea\b', 'Urea', 10, 150, ['nitrogen']),
+        (r'\bbun\b|blood\s+urea\s+nitrogen', 'BUN', 5, 100, []),
+        (r'creatinine', 'Creatinine', 0.3, 15.0, []),
+        (r'\bgfr\b|glomerular\s+filtration', 'GFR', 5, 200, []),
+        (r'uric\s+acid', 'Uric Acid', 2.0, 15.0, [])
+    ]
+    
+    # Collect tests with line numbers
+    tests_found = []
+    for i, line in enumerate(lines):
+        line_lower = line.lower()
+        for pattern, test_name, min_val, max_val, exclusions in test_defs:
+            if re.search(pattern, line_lower):
+                if any(excl in line_lower for excl in exclusions):
+                    continue
+                if not any(t[0] == test_name for t in tests_found):
+                    tests_found.append((test_name, min_val, max_val, i, line))
+                break
+    
+    if not tests_found:
+        return data
+    
+    # Try to extract values from same line first
+    for test_name, min_val, max_val, line_num, line in tests_found:
+        numbers = re.findall(r'\b(\d+\.?\d*)\b', line)
+        
+        for num in reversed(numbers):
+            # Skip if DIRECTLY part of a range
+            if re.search(r'\d+\.?\d*\s*[-–]\s*' + re.escape(num) + r'(?!\d)', line) or \
+               re.search(r'(?<!\d)' + re.escape(num) + r'\s*[-–]\s*\d+\.?\d*', line):
+                continue
+            # Skip >= or > patterns for GFR
+            if re.search(r'[>≥]\s*=?\s*' + re.escape(num), line):
+                continue
+            
+            try:
+                val = float(num)
+                if min_val <= val <= max_val:
+                    data[test_name] = num
+                    break
+            except:
+                pass
+    
+    # For tests still missing values, collect from next-line vertical column
+    missing_tests = [(t, mn, mx, ln) for t, mn, mx, ln, _ in tests_found if not data[t]]
+    
+    if missing_tests:
+        test_line_nums = {t[3] for t in tests_found}
+        start_line = tests_found[0][3]
+        end_line = tests_found[-1][3] + 3
+        
+        next_line_values = []
+        for i in range(start_line, min(end_line, len(lines))):
+            if i in test_line_nums:
+                continue
+            
+            line = lines[i]
+            if len(line) < 30:
+                continue
+            
+            # Get rightmost number
+            right_part = line[-40:]
+            numbers = re.findall(r'\b(\d+\.?\d*)\b', right_part)
+            if numbers:
+                num = numbers[-1]
+                if not re.search(r'\d+\.?\d*\s*[-–]\s*' + re.escape(num) + r'(?!\d)', right_part) and \
+                   not re.search(r'(?<!\d)' + re.escape(num) + r'\s*[-–]\s*\d+\.?\d*', right_part) and \
+                   not re.search(r'[>≥]\s*=?\s*' + re.escape(num), right_part):
+                    next_line_values.append(num)
+        
+        # Map to missing tests by position
+        for idx, (test_name, min_val, max_val, _) in enumerate(missing_tests):
+            if idx < len(next_line_values):
+                try:
+                    val = float(next_line_values[idx])
+                    if min_val <= val <= max_val:
+                        data[test_name] = next_line_values[idx]
+                except:
+                    pass
+    
     return data
