@@ -5,6 +5,10 @@ import os
 # Add the parent directory to the path to import modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Add the lab_pdf_to_dataset directory to path
+lab_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lab_pdf_to_dataset')
+sys.path.insert(0, lab_path)
+
 from extractors.cbc_extractor import extract_cbc, extract_basic_info
 from extractors.lft_extractor import extract_lft
 from extractors.rft_extractor import extract_rft

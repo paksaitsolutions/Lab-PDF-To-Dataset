@@ -5,6 +5,10 @@ import sys
 # Add the parent directory to the path to import modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Add the lab_pdf_to_dataset directory to path
+lab_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lab_pdf_to_dataset')
+sys.path.insert(0, lab_path)
+
 from utils.pdf_reader import read_pdf_text
 from utils.docx_reader import read_docx_text
 
