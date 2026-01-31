@@ -1,0 +1,16 @@
+name: lab-pdf-to-dataset
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - pdfplumber
+    - pandas
+    - openpyxl
+    - pytesseract
+    - pillow
+    - flask
+    - flask-cors
+    - python-docx
