@@ -22,6 +22,7 @@ Our system automates this entire process, converting hundreds of lab reports int
 - **Accurate Extraction**: Smart regex patterns to extract actual test results (not normal ranges)
 - **Structured Output**: Generates clean CSV files with consistent column formats
 - **Auto-Versioning**: Automatically creates new versions (dataset_1, dataset_2) to prevent overwriting
+- **Processing Audit Report**: Generates a JSON report with skipped files and reasons to improve data quality checks
 
 ## Benefits for Students
 
@@ -118,6 +119,7 @@ npm run dev
    - ZIP archive containing multiple reports
 4. **Organize by Test Type**: Place files in folders named `cbc`, `lft`, or `rft`
 5. **Download Results**: CSV files are generated in the `output/` folder
+6. **Review Audit Report**: Check `Processing_Report.json` for skipped files and error reasons
 
 ## Output Format
 

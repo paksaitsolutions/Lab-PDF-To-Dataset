@@ -30,28 +30,24 @@ TEST_CONFIG = {
     "cbc": {
         "detector_keywords": ["hemoglobin", "hematology", "complete blood count", "wbc", "rbc"],
         "extractor": extract_cbc,
-        "result_key": "cbc_count",
         "output_file": "CBC_Dataset.csv",
         "required_fields": ["Name", "Age", "Gender", "Source_PDF"],
     },
     "lft": {
         "detector_keywords": ["liver function", "bilirubin", "sgpt", "sgot", "alt", "ast"],
         "extractor": extract_lft,
-        "result_key": "lft_count",
         "output_file": "LFT_Dataset.csv",
         "required_fields": ["Name", "Age", "Gender", "Source_PDF"],
     },
     "rft": {
         "detector_keywords": ["renal function", "kidney", "creatinine", "urea", "bun"],
         "extractor": extract_rft,
-        "result_key": "rft_count",
         "output_file": "RFT_Dataset.csv",
         "required_fields": ["Name", "Age", "Gender", "Source_PDF"],
     },
     "tft": {
         "detector_keywords": ["thyroid", "tsh", "t3", "t4", "ft3", "ft4"],
         "extractor": extract_tft,
-        "result_key": "tft_count",
         "output_file": "TFT_Dataset.csv",
         "required_fields": ["Name", "Age", "Gender", "Source_PDF"],
     },
@@ -96,6 +92,35 @@ def detect_types_from_text(text):
     return detected
 
 
+def get_candidate_paths(upload_path):
+    candidate_paths = []
+    skipped = []
+
+    if upload_path.lower().endswith('.zip'):
+        extract_dir = os.path.join(UPLOAD_DIR, f"extracted_{uuid.uuid4().hex}")
+        os.makedirs(extract_dir, exist_ok=True)
+        with zipfile.ZipFile(upload_path, 'r') as z:
+            z.extractall(extract_dir)
+
+        for root, _, extracted_files in os.walk(extract_dir):
+            for extracted in extracted_files:
+                extracted_path = os.path.join(root, extracted)
+                if is_supported_file(extracted_path):
+                    candidate_paths.append(extracted_path)
+                else:
+                    skipped.append({"file": extracted, "reason": "Unsupported file type"})
+    elif is_supported_file(upload_path):
+        candidate_paths.append(upload_path)
+    else:
+        skipped.append({"file": os.path.basename(upload_path), "reason": "Unsupported file type"})
+
+    return candidate_paths, skipped
+
+
+def build_response_counts(result_rows):
+    return {f"{test_type}_count": len(rows) for test_type, rows in result_rows.items()}
+
+
 @app.route('/upload', methods=['POST'])
 def upload():
     try:
@@ -110,6 +135,7 @@ def upload():
         result_rows = {test_type: [] for test_type in TEST_CONFIG}
         total_files = 0
         processed_files = 0
+        skipped_files = []
 
         for uploaded_file in files:
             if not uploaded_file.filename:
@@ -119,20 +145,8 @@ def upload():
             upload_path = os.path.join(UPLOAD_DIR, unique_name)
             uploaded_file.save(upload_path)
 
-            candidate_paths = []
-            if upload_path.lower().endswith('.zip'):
-                extract_dir = os.path.join(UPLOAD_DIR, f"extracted_{uuid.uuid4().hex}")
-                os.makedirs(extract_dir, exist_ok=True)
-                with zipfile.ZipFile(upload_path, 'r') as z:
-                    z.extractall(extract_dir)
-
-                for root, _, extracted_files in os.walk(extract_dir):
-                    for extracted in extracted_files:
-                        extracted_path = os.path.join(root, extracted)
-                        if is_supported_file(extracted_path):
-                            candidate_paths.append(extracted_path)
-            elif is_supported_file(upload_path):
-                candidate_paths.append(upload_path)
+            candidate_paths, skipped = get_candidate_paths(upload_path)
+            skipped_files.extend(skipped)
 
             for candidate_path in candidate_paths:
                 total_files += 1
@@ -140,16 +154,14 @@ def upload():
                 inferred_type = infer_type_from_path(candidate_path)
 
                 try:
-                    if candidate_path.lower().endswith('.pdf'):
-                        text = read_pdf_text(candidate_path)
-                    else:
-                        text = read_docx_text(candidate_path)
+                    text = read_pdf_text(candidate_path) if candidate_path.lower().endswith('.pdf') else read_docx_text(candidate_path)
                 except Exception as read_error:
-                    print(f"Error reading {filename}: {read_error}")
+                    skipped_files.append({"file": filename, "reason": f"Read error: {read_error}"})
                     continue
 
                 detected_types = [inferred_type] if inferred_type else detect_types_from_text(text)
                 if not detected_types:
+                    skipped_files.append({"file": filename, "reason": "Could not detect test type"})
                     continue
 
                 extracted_any_for_file = False
@@ -168,32 +180,56 @@ def upload():
 
                 if extracted_any_for_file:
                     processed_files += 1
+                else:
+                    skipped_files.append({"file": filename, "reason": "No extractable values for selected test types"})
 
         output_files = {}
         for test_type, config in TEST_CONFIG.items():
-            if selected_types.get(test_type, False):
-                output_path = get_unique_filename(f"{OUTPUT_DIR}/{config['output_file']}")
-                pd.DataFrame(result_rows[test_type]).to_csv(output_path, index=False)
-                output_files[test_type] = os.path.basename(output_path)
-            else:
+            if not selected_types.get(test_type, False):
                 output_files[test_type] = 'N/A'
+                continue
+
+            if not result_rows[test_type]:
+                output_files[test_type] = 'No rows extracted'
+                continue
+
+            output_path = get_unique_filename(f"{OUTPUT_DIR}/{config['output_file']}")
+            pd.DataFrame(result_rows[test_type]).to_csv(output_path, index=False)
+            output_files[test_type] = os.path.basename(output_path)
+
+        report_path = get_unique_filename(f"{OUTPUT_DIR}/Processing_Report.json")
+        with open(report_path, 'w', encoding='utf-8') as report_file:
+            json.dump(
+                {
+                    'total_files': total_files,
+                    'processed_files': processed_files,
+                    'selected_types': selected_types,
+                    'counts': build_response_counts(result_rows),
+                    'skipped_files': skipped_files,
+                    'output_files': output_files,
+                },
+                report_file,
+                indent=2,
+            )
 
         shutil.rmtree(UPLOAD_DIR)
         os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-        return jsonify({
+        response_payload = {
             'success': True,
             'total_files': total_files,
             'processed_files': processed_files,
-            'cbc_count': len(result_rows['cbc']),
-            'lft_count': len(result_rows['lft']),
-            'rft_count': len(result_rows['rft']),
-            'tft_count': len(result_rows['tft']),
+            'skipped_files': skipped_files,
+            'skipped_count': len(skipped_files),
             'cbc_file': output_files['cbc'],
             'lft_file': output_files['lft'],
             'rft_file': output_files['rft'],
             'tft_file': output_files['tft'],
-        })
+            'report_file': os.path.basename(report_path),
+        }
+        response_payload.update(build_response_counts(result_rows))
+
+        return jsonify(response_payload)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e), 'trace': traceback.format_exc()}), 500
 

@@ -156,14 +156,16 @@ class TestIntegration:
         cbc_result = extract_cbc(sample_text)
         lft_result = extract_lft(sample_text)
         rft_result = extract_rft(sample_text)
-        
+        tft_result = extract_tft(sample_text)
+
         # All should return dictionaries
         assert isinstance(cbc_result, dict)
         assert isinstance(lft_result, dict)
         assert isinstance(rft_result, dict)
-        
+        assert isinstance(tft_result, dict)
+
         # All should have basic info keys
-        for result in [cbc_result, lft_result, rft_result]:
+        for result in [cbc_result, lft_result, rft_result, tft_result]:
             assert "Name" in result
             assert "Age" in result
             assert "Gender" in result
