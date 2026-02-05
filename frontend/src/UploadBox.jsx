@@ -6,7 +6,7 @@ export default function UploadBox() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [testTypes, setTestTypes] = useState({ cbc: true, lft: true, rft: true });
+  const [testTypes, setTestTypes] = useState({ cbc: true, lft: true, rft: true, tft: true });
 
   const handleUpload = async () => {
     if (!files.length) return alert("Select file(s)");
@@ -14,7 +14,7 @@ export default function UploadBox() {
     setLoading(true);
     setError(null);
     setResult(null);
-    
+
     try {
       const res = await uploadFiles(files, testTypes);
       if (res.success) {
@@ -32,7 +32,7 @@ export default function UploadBox() {
     setFiles([]);
     setResult(null);
     setError(null);
-    setTestTypes({ cbc: true, lft: true, rft: true });
+    setTestTypes({ cbc: true, lft: true, rft: true, tft: true });
     document.querySelector('input[type="file"]').value = '';
   };
 
@@ -45,34 +45,38 @@ export default function UploadBox() {
         onChange={e => setFiles([...e.target.files])}
       />
 
-      <div style={{margin: '15px 0'}}>
-        <label style={{marginRight: '15px'}}>
-          <input type="checkbox" checked={testTypes.cbc} onChange={e => setTestTypes({...testTypes, cbc: e.target.checked})} />
+      <div style={{ margin: '15px 0' }}>
+        <label style={{ marginRight: '15px' }}>
+          <input type="checkbox" checked={testTypes.cbc} onChange={e => setTestTypes({ ...testTypes, cbc: e.target.checked })} />
           {' '}CBC
         </label>
-        <label style={{marginRight: '15px'}}>
-          <input type="checkbox" checked={testTypes.lft} onChange={e => setTestTypes({...testTypes, lft: e.target.checked})} />
+        <label style={{ marginRight: '15px' }}>
+          <input type="checkbox" checked={testTypes.lft} onChange={e => setTestTypes({ ...testTypes, lft: e.target.checked })} />
           {' '}LFT
         </label>
-        <label>
-          <input type="checkbox" checked={testTypes.rft} onChange={e => setTestTypes({...testTypes, rft: e.target.checked})} />
+        <label style={{ marginRight: '15px' }}>
+          <input type="checkbox" checked={testTypes.rft} onChange={e => setTestTypes({ ...testTypes, rft: e.target.checked })} />
           {' '}RFT
+        </label>
+        <label>
+          <input type="checkbox" checked={testTypes.tft} onChange={e => setTestTypes({ ...testTypes, tft: e.target.checked })} />
+          {' '}TFT
         </label>
       </div>
 
-      <div style={{display: 'flex', gap: '10px'}}>
+      <div style={{ display: 'flex', gap: '10px' }}>
         <button onClick={handleUpload} disabled={loading}>
           {loading ? "Processing..." : "Upload"}
         </button>
-        <button onClick={handleClear} disabled={loading} style={{background: '#6b7280'}}>
+        <button onClick={handleClear} disabled={loading} style={{ background: '#6b7280' }}>
           Clear
         </button>
       </div>
 
       {loading && <p>⏳ Processing files...</p>}
-      
+
       {error && (
-        <div style={{color: 'red', marginTop: '10px'}}>
+        <div style={{ color: 'red', marginTop: '10px' }}>
           ❌ Error: {error}
         </div>
       )}
@@ -82,8 +86,20 @@ export default function UploadBox() {
           <p>✅ Processing complete!</p>
           <p>Total files: {result.total_files}</p>
           <p>Processed: {result.processed_files}</p>
-          <p>CBC: {result.cbc_count} | LFT: {result.lft_count} | RFT: {result.rft_count}</p>
-          <p>Files saved: {result.cbc_file}, {result.lft_file}, {result.rft_file}</p>
+          <p>Skipped: {result.skipped_count}</p>
+          <p>CBC: {result.cbc_count} | LFT: {result.lft_count} | RFT: {result.rft_count} | TFT: {result.tft_count}</p>
+          <p>Files saved: {result.cbc_file}, {result.lft_file}, {result.rft_file}, {result.tft_file}</p>
+          <p>Processing report: {result.report_file}</p>
+          {!!result.skipped_files?.length && (
+            <details style={{ marginTop: '10px' }}>
+              <summary>Show skipped files ({result.skipped_files.length})</summary>
+              <ul style={{ marginTop: '8px' }}>
+                {result.skipped_files.map((item, index) => (
+                  <li key={`${item.file}-${index}`}>{item.file}: {item.reason}</li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       )}
     </div>

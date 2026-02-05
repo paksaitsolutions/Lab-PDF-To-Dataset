@@ -12,6 +12,7 @@ sys.path.insert(0, lab_path)
 from extractors.cbc_extractor import extract_cbc, extract_basic_info
 from extractors.lft_extractor import extract_lft
 from extractors.rft_extractor import extract_rft
+from extractors.tft_extractor import extract_tft
 
 
 class TestCBCExtractor:
@@ -117,6 +118,34 @@ class TestRFTExtractor:
         assert "GFR" in result
 
 
+
+
+class TestTFTExtractor:
+    """Test cases for TFT data extraction"""
+
+    def test_extract_tft_with_sample_data(self):
+        """Test TFT extraction with sample lab report data"""
+        sample_text = """
+        Patient Name: Sam Wilson
+        Age/Sex: 29 years/Male
+
+        Thyroid Function Test:
+        T3: 1.4 ng/mL
+        T4: 8.2 ug/dL
+        TSH: 3.1 uIU/mL
+        FT3: 3.4 pg/mL
+        FT4: 1.1 ng/dL
+        """
+
+        result = extract_tft(sample_text)
+
+        assert result["Name"] == "Sam Wilson"
+        assert result["Age"] == "29"
+        assert result["Gender"] == "Male"
+        assert result["T3"] == "1.4"
+        assert result["T4"] == "8.2"
+        assert result["TSH"] == "3.1"
+
 class TestIntegration:
     """Integration tests for the entire extraction system"""
     
@@ -127,14 +156,16 @@ class TestIntegration:
         cbc_result = extract_cbc(sample_text)
         lft_result = extract_lft(sample_text)
         rft_result = extract_rft(sample_text)
-        
+        tft_result = extract_tft(sample_text)
+
         # All should return dictionaries
         assert isinstance(cbc_result, dict)
         assert isinstance(lft_result, dict)
         assert isinstance(rft_result, dict)
-        
+        assert isinstance(tft_result, dict)
+
         # All should have basic info keys
-        for result in [cbc_result, lft_result, rft_result]:
+        for result in [cbc_result, lft_result, rft_result, tft_result]:
             assert "Name" in result
             assert "Age" in result
             assert "Gender" in result
