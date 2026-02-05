@@ -16,7 +16,7 @@ Our system automates this entire process, converting hundreds of lab reports int
 
 ## Key Features
 - **Multi-Format Support**: Extract data from both PDF files and Word documents (.doc, .docx)
-- **Multiple Test Types**: Supports CBC (Complete Blood Count), LFT (Liver Function Test), and RFT (Renal Function Test)
+- **Multiple Test Types**: Supports CBC (Complete Blood Count), LFT (Liver Function Test), RFT (Renal Function Test), and TFT (Thyroid Function Test)
 - **Batch Processing**: Upload ZIP files containing multiple reports for bulk processing
 - **Web Interface**: User-friendly React-based frontend for easy file uploads
 - **Accurate Extraction**: Smart regex patterns to extract actual test results (not normal ranges)
@@ -130,13 +130,16 @@ npm run dev
 ### RFT Dataset Columns
 `Name, Age, Gender, Urea, BUN, Creatinine, GFR, Uric Acid, Source_PDF`
 
+### TFT Dataset Columns
+`Name, Age, Gender, T3, T4, TSH, Free T3, Free T4, Source_PDF`
+
 ## Example Workflow
 
 1. Collect 1000 CBC lab reports (PDF/Word)
-2. Organize them in a folder named `cbc`
+2. Organize them in folders such as `cbc`, `lft`, `rft`, or `tft`
 3. Create a ZIP file
 4. Upload via web interface
-5. Receive `CBC_Dataset.csv` with 1000 rows of structured data
+5. Receive `CBC_Dataset.csv`, `LFT_Dataset.csv`, `RFT_Dataset.csv`, and `TFT_Dataset.csv` based on selected test types
 6. Import into Python/R for analysis
 7. Build ML models or perform statistical analysis
 
