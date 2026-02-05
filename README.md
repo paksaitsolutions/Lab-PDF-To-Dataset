@@ -145,6 +145,22 @@ npm run dev
 6. Import into Python/R for analysis
 7. Build ML models or perform statistical analysis
 
+
+## GitHub Pages Deployment
+
+If deploying to `https://<user>.github.io/Lab-PDF-To-Dataset/`, ensure:
+
+1. The frontend is built with a base path of `/Lab-PDF-To-Dataset/` (configured in `frontend/vite.config.js`).
+2. GitHub Actions deploys `frontend/dist` (not the repository root).
+3. You set the backend API URL for production:
+
+```bash
+# example before build
+export VITE_API_BASE_URL=https://your-backend-domain.com
+```
+
+Without `VITE_API_BASE_URL`, the frontend defaults to `http://localhost:5000`.
+
 ## Future Enhancements
 - Support for more test types (Lipid Profile, Thyroid Function, etc.)
 - OCR support for scanned documents
