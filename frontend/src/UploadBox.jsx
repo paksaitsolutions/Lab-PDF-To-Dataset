@@ -1,5 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { uploadFiles } from "./api";
+
+const DOWNLOAD_SKIP_VALUES = new Set(["N/A", "No rows extracted"]);
+
+function isDownloadable(filename) {
+  return filename && !DOWNLOAD_SKIP_VALUES.has(filename);
+}
 
 export default function UploadBox() {
   const [files, setFiles] = useState([]);
