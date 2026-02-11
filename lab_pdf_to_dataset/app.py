@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import zipfile
 import os
@@ -119,25 +119,6 @@ def get_candidate_paths(upload_path):
 
 def build_response_counts(result_rows):
     return {f"{test_type}_count": len(rows) for test_type, rows in result_rows.items()}
-
-
-def safe_download_filename(filename):
-    if not filename or '/' in filename or '\\' in filename:
-        return None
-    return filename
-
-
-@app.route('/download/<path:filename>', methods=['GET'])
-def download(filename):
-    safe_name = safe_download_filename(filename)
-    if not safe_name:
-        return jsonify({'success': False, 'error': 'Invalid filename'}), 400
-
-    file_path = os.path.join(OUTPUT_DIR, safe_name)
-    if not os.path.isfile(file_path):
-        return jsonify({'success': False, 'error': 'File not found'}), 404
-
-    return send_from_directory(OUTPUT_DIR, safe_name, as_attachment=True)
 
 
 @app.route('/upload', methods=['POST'])

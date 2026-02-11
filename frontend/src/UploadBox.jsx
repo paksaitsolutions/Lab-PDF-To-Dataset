@@ -14,38 +14,6 @@ export default function UploadBox() {
   const [error, setError] = useState(null);
   const [testTypes, setTestTypes] = useState({ cbc: true, lft: true, rft: true, tft: true });
 
-  const downloadLinks = useMemo(() => {
-    if (!result?.success) return [];
-
-    const entries = [
-      { label: "CBC Dataset", filename: result.cbc_file },
-      { label: "LFT Dataset", filename: result.lft_file },
-      { label: "RFT Dataset", filename: result.rft_file },
-      { label: "TFT Dataset", filename: result.tft_file },
-      { label: "Processing Report", filename: result.report_file },
-    ];
-
-    return entries
-      .filter(entry => isDownloadable(entry.filename))
-      .map(entry => ({
-        ...entry,
-        url: `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/download/${encodeURIComponent(entry.filename)}`,
-      }));
-  }, [result]);
-
-  useEffect(() => {
-    if (!downloadLinks.length) return;
-
-    downloadLinks.forEach(({ url, filename }) => {
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    });
-  }, [downloadLinks]);
-
   const handleUpload = async () => {
     if (!files.length) return alert("Select file(s)");
 
@@ -128,33 +96,6 @@ export default function UploadBox() {
           <p>CBC: {result.cbc_count} | LFT: {result.lft_count} | RFT: {result.rft_count} | TFT: {result.tft_count}</p>
           <p>Files saved: {result.cbc_file}, {result.lft_file}, {result.rft_file}, {result.tft_file}</p>
           <p>Processing report: {result.report_file}</p>
-
-          {!!downloadLinks.length && (
-            <div style={{ marginTop: '12px' }}>
-              <strong>Downloads</strong>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                {downloadLinks.map(link => (
-                  <a
-                    key={link.label}
-                    href={link.url}
-                    download={link.filename}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '999px',
-                      border: '1px solid #cbd5f5',
-                      background: '#eef2ff',
-                      color: '#3730a3',
-                      fontSize: '0.85em',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    ⬇️ {link.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
           {!!result.skipped_files?.length && (
             <details style={{ marginTop: '10px' }}>
               <summary>Show skipped files ({result.skipped_files.length})</summary>
