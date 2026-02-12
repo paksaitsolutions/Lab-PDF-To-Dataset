@@ -1,5 +1,11 @@
-import React, { useState } from "react";
-import { uploadFiles } from "./api";
+import React, { useEffect, useMemo, useState } from "react";
+import { getDownloadUrl, uploadFiles } from "./api";
+
+const DOWNLOAD_SKIP_VALUES = new Set(["N/A", "No rows extracted"]);
+
+function isDownloadable(filename) {
+  return filename && !DOWNLOAD_SKIP_VALUES.has(filename);
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -49,7 +55,12 @@ export default function UploadBox() {
         setError(res.error || 'Processing failed');
       }
     } catch (e) {
-      setError(e.message || 'Upload failed');
+      const message = e?.message || 'Upload failed';
+      if (message.includes('Failed to fetch')) {
+        setError('Cannot connect to backend API. Start Flask server or set VITE_API_BASE_URL to your deployed backend URL.');
+      } else {
+        setError(message);
+      }
     }
     setLoading(false);
   };

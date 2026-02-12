@@ -14,5 +14,10 @@ export async function uploadFiles(files, testTypes) {
     body: formData,
   });
 
-  return response.json();
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Upload request failed');
+  }
+
+  return payload;
 }
