@@ -115,6 +115,12 @@ export default function App() {
           <strong>TFT Reports</strong>
           <p style={{ fontSize: '0.9em', color: '#666', margin: '5px 0 0 0' }}>Thyroid Function Test</p>
         </div>
+
+        <div style={{ padding: '20px', background: '#e0f2fe', borderRadius: '10px', textAlign: 'center' }}>
+          <div style={{ fontSize: '2em' }}>🦋</div>
+          <strong>TFT Reports</strong>
+          <p style={{ fontSize: '0.9em', color: '#666', margin: '5px 0 0 0' }}>Thyroid Function Test</p>
+        </div>
       </div>
 
       {/* Upload Section */}
