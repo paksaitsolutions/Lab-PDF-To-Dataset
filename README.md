@@ -3,7 +3,7 @@
 Developed by **Paksa IT Solutions**
 
 ## Overview
-Lab-PDF-To-Dataset is an intelligent data extraction system that automatically converts medical laboratory test reports (PDF and Word documents) into structured, machine-readable CSV datasets. This tool eliminates the tedious manual data entry process and provides clean, ready-to-use datasets for analysis and research.
+Lab-PDF-To-Dataset is an intelligent data extraction system that automatically converts medical laboratory test reports (PDF and Word documents) into structured, machine-readable CSV and Excel datasets. This tool eliminates the tedious manual data entry process and provides clean, ready-to-use datasets for analysis and research.
 
 ## Problem It Solves
 Medical lab reports are typically stored as unstructured PDF or Word documents, making it extremely difficult to:
@@ -15,14 +15,14 @@ Medical lab reports are typically stored as unstructured PDF or Word documents, 
 Our system automates this entire process, converting hundreds of lab reports into structured datasets in minutes.
 
 ## Key Features
-- **Multi-Format Support**: Extract data from both PDF files and Word documents (.doc, .docx)
+- **Multi-Format Support**: Extract data from PDF (text-based and scanned) and Word documents (.doc, .docx)
+- **OCR Capabilities**: Automatically detects scanned PDFs and uses OCR (Tesseract) to extract text.
 - **Multiple Test Types**: Supports CBC (Complete Blood Count), LFT (Liver Function Test), RFT (Renal Function Test), and TFT (Thyroid Function Test)
+- **Dual Output**: Generates both **CSV** and **Excel (.xlsx)** datasets.
 - **Batch Processing**: Upload ZIP files containing multiple reports for bulk processing
-- **Web Interface**: User-friendly React-based frontend for easy file uploads
-- **Accurate Extraction**: Smart regex patterns to extract actual test results (not normal ranges)
-- **Structured Output**: Generates clean CSV files with consistent column formats
-- **Auto-Versioning**: Automatically creates new versions (dataset_1, dataset_2) to prevent overwriting
-- **Processing Audit Report**: Generates a JSON report with skipped files and reasons to improve data quality checks
+- **Robust Error Handling**: Skips problematic files without stopping the batch, logging errors to a dedicated CSV report.
+- **Web Interface**: User-friendly React-based frontend with progress tracking and direct downloads.
+- **Accurate Extraction**: Smart regex patterns to extract actual test results, avoiding ranges and dates.
 
 ## Benefits for Students
 
@@ -32,68 +32,45 @@ Our system automates this entire process, converting hundreds of lab reports int
    - Complete assignments requiring real-world medical data
 
 ### 2. **Learning Data Processing**
-   - Understand how unstructured data is converted to structured formats
-   - Learn about regex patterns and text extraction techniques
-   - Study the architecture of full-stack applications
+   - Understand how unstructured data (including scanned images) is converted to structured formats
+   - Learn about regex patterns, OCR, and text extraction techniques
+   - Study the architecture of full-stack applications (Flask + React)
 
 ### 3. **Final Year Projects**
    - Use generated datasets for machine learning projects
    - Build predictive models for disease diagnosis
    - Create health analytics dashboards
 
-### 4. **Skill Development**
-   - Gain hands-on experience with Python, Flask, and React
-   - Learn about PDF/Word document processing
-   - Understand data pipeline development
-
 ## Benefits for Data Scientists
 
 ### 1. **Rapid Dataset Creation**
    - Convert thousands of lab reports into analysis-ready datasets in minutes
-   - Eliminate weeks of manual data entry work
+   - eliminate weeks of manual data entry work
    - Focus on analysis rather than data collection
 
-### 2. **Machine Learning Applications**
+### 2. **High-Quality Data**
+   - **Excel Export**: Get data in a format ready for immediate analysis in Excel, pandas, or other tools.
+   - **Error Logging**: detailed `Processing_Errors.csv` helps identify data quality issues source files.
+   - **Consistent Formatting**: Standardized columns across all extracted files.
+
+### 3. **Machine Learning Applications**
    - Build predictive models for disease detection
    - Train classification algorithms for abnormal test results
    - Develop patient risk assessment systems
-   - Create recommendation systems for medical diagnostics
-
-### 3. **Healthcare Analytics**
-   - Perform statistical analysis on patient populations
-   - Identify correlations between different test parameters
-   - Study disease patterns and trends
-   - Generate insights for clinical decision support
-
-### 4. **Research & Publications**
-   - Quickly prepare datasets for medical research papers
-   - Conduct retrospective studies on patient data
-   - Validate hypotheses with real-world medical data
-   - Collaborate with healthcare institutions on data-driven research
-
-### 5. **Time & Cost Efficiency**
-   - Reduce data preparation time by 95%
-   - Lower project costs by eliminating manual data entry
-   - Scale data collection efforts effortlessly
-
-## Use Cases
-
-1. **Medical Research**: Analyze lab test trends across patient demographics
-2. **Disease Prediction**: Build ML models to predict diseases based on lab values
-3. **Health Monitoring**: Track patient health metrics over time
-4. **Clinical Studies**: Prepare datasets for retrospective clinical research
-5. **Educational Projects**: Create datasets for teaching data science in healthcare
-6. **Hospital Analytics**: Generate insights from historical lab data
-
-## Tech Stack
-- **Backend**: Python Flask (REST API)
-- **Frontend**: React + Vite (Modern UI)
-- **PDF Processing**: pdfplumber (Text extraction)
-- **Word Processing**: python-docx, pywin32 (Support for .doc and .docx)
-- **Data Export**: pandas (CSV generation)
-- **Pattern Matching**: Regular expressions (Accurate data extraction)
 
 ## Installation
+
+### Prerequisites
+1. **Python 3.8+**
+2. **Node.js 14+**
+3. **Tesseract OCR** (For scanned PDFs):
+   - **Windows**: [Download Installer](https://github.com/UB-Mannheim/tesseract/wiki) (Add to PATH)
+   - **Linux**: `sudo apt install tesseract-ocr`
+   - **Mac**: `brew install tesseract`
+4. **Poppler** (For PDF-to-Image conversion):
+   - **Windows**: [Download Release](https://github.com/oschwartz10612/poppler-windows/releases) (Add `bin` folder to PATH)
+   - **Linux**: `sudo apt install poppler-utils`
+   - **Mac**: `brew install poppler`
 
 ### Backend Setup
 ```bash
@@ -114,12 +91,12 @@ npm run dev
 1. **Start the Backend**: Run `python app.py` (Flask server on port 5000)
 2. **Start the Frontend**: Run `npm run dev` (React app on port 5173)
 3. **Upload Files**: 
-   - Single PDF/Word file
-   - Multiple files
+   - Single or Multiple PDF/Word files (Text or Scanned)
    - ZIP archive containing multiple reports
-4. **Organize by Test Type**: Place files in folders named `cbc`, `lft`, or `rft`
-5. **Download Results**: CSV files are generated in the `output/` folder
-6. **Review Audit Report**: Check `Processing_Report.json` for skipped files and error reasons
+4. **Select Test Types**: Check boxes for CBC, LFT, RFT, or TFT.
+5. **Download Results**: 
+   - Download **CSV** or **Excel** datasets directly from the UI.
+   - Download **Error Log** if any files failed.
 
 ## Output Format
 
@@ -134,39 +111,6 @@ npm run dev
 
 ### TFT Dataset Columns
 `Name, Age, Gender, T3, T4, TSH, Free T3, Free T4, Source_PDF`
-
-## Example Workflow
-
-1. Collect 1000 CBC lab reports (PDF/Word)
-2. Organize them in folders such as `cbc`, `lft`, `rft`, or `tft`
-3. Create a ZIP file
-4. Upload via web interface
-5. Receive `CBC_Dataset.csv`, `LFT_Dataset.csv`, `RFT_Dataset.csv`, and `TFT_Dataset.csv` based on selected test types
-6. Import into Python/R for analysis
-7. Build ML models or perform statistical analysis
-
-
-## GitHub Pages Deployment
-
-If deploying to `https://<user>.github.io/Lab-PDF-To-Dataset/`, ensure:
-
-1. The frontend is built with a base path of `/Lab-PDF-To-Dataset/` (configured in `frontend/vite.config.js`).
-2. GitHub Actions deploys `frontend/dist` (not the repository root).
-3. You set the backend API URL for production:
-
-```bash
-# example before build
-export VITE_API_BASE_URL=https://your-backend-domain.com
-```
-
-Without `VITE_API_BASE_URL`, the frontend defaults to `http://localhost:5000`.
-
-## Future Enhancements
-- Support for more test types (Lipid Profile, Thyroid Function, etc.)
-- OCR support for scanned documents
-- Data visualization dashboard
-- API endpoints for programmatic access
-- Cloud deployment for scalability
 
 ---
 

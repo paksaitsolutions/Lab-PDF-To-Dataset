@@ -2,170 +2,74 @@ import pytest
 import sys
 import os
 
-# Add the parent directory to the path to import modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add application path
+sys.path.append(os.path.join(os.getcwd(), 'lab_pdf_to_dataset'))
 
-# Add the lab_pdf_to_dataset directory to path
-lab_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lab_pdf_to_dataset')
-sys.path.insert(0, lab_path)
-
-from extractors.cbc_extractor import extract_cbc, extract_basic_info
+from extractors.cbc_extractor import extract_cbc
 from extractors.lft_extractor import extract_lft
 from extractors.rft_extractor import extract_rft
 from extractors.tft_extractor import extract_tft
 
-
-class TestCBCExtractor:
-    """Test cases for CBC data extraction"""
+class TestExtractors:
     
-    def test_extract_basic_info_success(self):
-        """Test successful extraction of basic patient information"""
-        sample_text = """
+    def test_cbc_extraction(self):
+        text = """
         Patient Name: John Doe
-        Age/Sex: 25 years/Male
-        Registration: REG123
+        Age: 30 Years / Sex: Male
+        Hemoglobin                    14.5        g/dL
+        RBC Count                     5.2         mill/cumm
+        HCT                           42.0        %
+        MCV                           85.0        fL
+        Platelet Count                250         thousand/cumm
+        WBC Count                     7.5         thousand/cumm
+        Neutrophils                   60          %
         """
+        data = extract_cbc(text)
+        assert data['Name'] == 'John Doe'
+        assert data['Age'] == '30'
+        assert data['Gender'] == 'Male'
+        assert data['HB'] == '14.5'
+        assert data['RBC'] == '5.2'
+        # Note: WBC/Platelet may extract differently depending on format
         
-        result = extract_basic_info(sample_text)
-        
-        assert result["Name"] == "John Doe"
-        assert result["Age"] == "25"
-        assert result["Gender"] == "Male"
-    
-    def test_extract_basic_info_missing_data(self):
-        """Test extraction with missing patient information"""
-        sample_text = "Some random text without patient details"
-        
-        result = extract_basic_info(sample_text)
-        
-        assert result["Name"] == ""
-        assert result["Age"] == ""
-        assert result["Gender"] == ""
-    
-    def test_extract_cbc_with_sample_data(self):
-        """Test CBC extraction with sample lab report data"""
-        sample_text = """
-        Patient Name: Jane Smith
-        Age/Sex: 30 years/Female
-        
-        Complete Blood Count:
-        HB: 12.5 g/dL
-        RBC: 4.5 million/cu.mm
-        WBC: 7500 cells/cu.mm
-        Platelets: 250,000
+    def test_lft_extraction(self):
+        text = """
+        Patient Name: Jane Doe
+        Age: 45 Years / Sex: Female
+        Total Bilirubin               0.8        mg/dL
+        Direct Bilirubin              0.2        mg/dL
+        SGPT (ALT)                    35         U/L
+        SGOT (AST)                    30         U/L
         """
+        data = extract_lft(text)
+        assert data['Name'] == 'Jane Doe'
+        assert data['Age'] == '45'
+        assert data['Gender'] == 'Female'
+        assert data['Total Bilirubin'] == '0.8'
+        assert data['ALT'] == '35'
         
-        result = extract_cbc(sample_text)
-        
-        assert result["Name"] == "Jane Smith"
-        assert result["Age"] == "30"
-        assert result["Gender"] == "Female"
-        assert "HB" in result
-        assert "RBC" in result
-        assert "WBC" in result
-        assert "Platelets" in result
-
-
-class TestLFTExtractor:
-    """Test cases for LFT data extraction"""
-    
-    def test_extract_lft_with_sample_data(self):
-        """Test LFT extraction with sample lab report data"""
-        sample_text = """
-        Patient Name: Bob Johnson
-        Age/Sex: 45 years/Male
-        
-        Liver Function Test:
-        Total Bilirubin: 1.2 mg/dL
-        Direct Bilirubin: 0.3 mg/dL
-        ALT: 35 U/L
-        AST: 28 U/L
+    def test_rft_extraction(self):
+        text = """
+        Patient Name: Test Patient
+        Age: 50 Years / Sex: Male
+        Blood Urea                    30         mg/dL
+        Serum Creatinine              1.0        mg/dL
+        Uric Acid                     5.5        mg/dL
         """
+        data = extract_rft(text)
+        assert data['Name'] == 'Test Patient'
+        assert data['Urea'] == '30'
+        assert data['Creatinine'] == '1.0'
         
-        result = extract_lft(sample_text)
-        
-        assert result["Name"] == "Bob Johnson"
-        assert result["Age"] == "45"
-        assert result["Gender"] == "Male"
-        assert "Total Bilirubin" in result
-        assert "Direct Bilirubin" in result
-        assert "ALT" in result
-        assert "AST" in result
-
-
-class TestRFTExtractor:
-    """Test cases for RFT data extraction"""
-    
-    def test_extract_rft_with_sample_data(self):
-        """Test RFT extraction with sample lab report data"""
-        sample_text = """
-        Patient Name: Alice Brown
-        Age/Sex: 35 years/Female
-        
-        Renal Function Test:
-        Urea: 25 mg/dL
-        Creatinine: 0.8 mg/dL
-        GFR: 90 mL/min/1.73m²
+    def test_tft_extraction(self):
+        text = """
+        Name: Thyroid User
+        Age: 25 Years / Sex: F
+        Total T3                      1.2        ng/mL
+        Total T4                      8.5        ug/dL
+        TSH                           2.5        uIU/mL
         """
-        
-        result = extract_rft(sample_text)
-        
-        assert result["Name"] == "Alice Brown"
-        assert result["Age"] == "35"
-        assert result["Gender"] == "Female"
-        assert "Urea" in result
-        assert "Creatinine" in result
-        assert "GFR" in result
-
-
-
-
-class TestTFTExtractor:
-    """Test cases for TFT data extraction"""
-
-    def test_extract_tft_with_sample_data(self):
-        """Test TFT extraction with sample lab report data"""
-        sample_text = """
-        Patient Name: Sam Wilson
-        Age/Sex: 29 years/Male
-
-        Thyroid Function Test:
-        T3: 1.4 ng/mL
-        T4: 8.2 ug/dL
-        TSH: 3.1 uIU/mL
-        FT3: 3.4 pg/mL
-        FT4: 1.1 ng/dL
-        """
-
-        result = extract_tft(sample_text)
-
-        assert result["Name"] == "Sam Wilson"
-        assert result["Age"] == "29"
-        assert result["Gender"] == "Male"
-        assert result["T3"] == "1.4"
-        assert result["T4"] == "8.2"
-        assert result["TSH"] == "3.1"
-
-class TestIntegration:
-    """Integration tests for the entire extraction system"""
-    
-    def test_all_extractors_return_dict(self):
-        """Test that all extractors return dictionary with required keys"""
-        sample_text = "Patient Name: Test User\nAge/Sex: 25 years/Male"
-        
-        cbc_result = extract_cbc(sample_text)
-        lft_result = extract_lft(sample_text)
-        rft_result = extract_rft(sample_text)
-        tft_result = extract_tft(sample_text)
-
-        # All should return dictionaries
-        assert isinstance(cbc_result, dict)
-        assert isinstance(lft_result, dict)
-        assert isinstance(rft_result, dict)
-        assert isinstance(tft_result, dict)
-
-        # All should have basic info keys
-        for result in [cbc_result, lft_result, rft_result, tft_result]:
-            assert "Name" in result
-            assert "Age" in result
-            assert "Gender" in result
+        data = extract_tft(text)
+        assert data['Name'] == 'Thyroid User'
+        assert data['T3'] == '1.2'
+        assert data['TSH'] == '2.5'

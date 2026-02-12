@@ -1,0 +1,39 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.11, pytest-9.0.1, pluggy-1.6.0 -- C:\Users\chzaf\AppData\Local\Programs\Python\Python310\python.exe
+cachedir: .pytest_cache
+rootdir: D:\Lab-PDF-To-Dataset
+plugins: anyio-4.10.0
+collecting ... collected 2 items
+
+tests/test_excel_export.py::TestExcelExport::test_excel_file_creation PASSED [ 50%]
+tests/test_excel_export.py::TestExcelExport::test_excel_file_creation ERROR [ 50%]
+tests/test_excel_export.py::TestExcelExport::test_app_config_excel PASSED [100%]
+tests/test_excel_export.py::TestExcelExport::test_app_config_excel ERROR [100%]
+
+=================================== ERRORS ====================================
+________ ERROR at teardown of TestExcelExport.test_excel_file_creation ________
+
+self = <tests.test_excel_export.TestExcelExport object at 0x00000222CEC58DC0>
+
+    def teardown_method(self):
+        # Cleanup
+        if os.path.exists(UPLOAD_DIR):
+>           shutil.rmtree(UPLOAD_DIR)
+E           NameError: name 'shutil' is not defined
+
+tests\test_excel_export.py:22: NameError
+_________ ERROR at teardown of TestExcelExport.test_app_config_excel __________
+
+self = <tests.test_excel_export.TestExcelExport object at 0x00000222CEC58A90>
+
+    def teardown_method(self):
+        # Cleanup
+        if os.path.exists(UPLOAD_DIR):
+>           shutil.rmtree(UPLOAD_DIR)
+E           NameError: name 'shutil' is not defined
+
+tests\test_excel_export.py:22: NameError
+=========================== short test summary info ===========================
+ERROR tests/test_excel_export.py::TestExcelExport::test_excel_file_creation
+ERROR tests/test_excel_export.py::TestExcelExport::test_app_config_excel - Na...
+========================= 2 passed, 2 errors in 2.79s =========================

@@ -1,0 +1,11 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.11, pytest-9.0.1, pluggy-1.6.0 -- C:\Users\chzaf\AppData\Local\Programs\Python\Python310\python.exe
+cachedir: .pytest_cache
+rootdir: D:\Lab-PDF-To-Dataset
+plugins: anyio-4.10.0
+collecting ... collected 8 items
+
+tests/test_app.py::TestFlaskApp::test_upload_no_file PASSED              [ 12%]
+tests/test_app.py::TestFlaskApp::test_upload_with_invalid_file_type PASSED [ 25%]
+tests/test_app.py::TestFlaskApp::test_upload_pdf_processing FAILED       [ 37%]
+tests/test_app.py::TestFlaskApp::test_directory_creation PASSED          [ 50%]

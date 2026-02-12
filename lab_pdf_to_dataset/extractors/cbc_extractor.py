@@ -1,5 +1,6 @@
 # CBC Extractor - Hybrid: handles same-line and next-line results
 import re
+from utils.text_utils import extract_value_from_line
 
 def extract_basic_info(text):
     # Try multiple name patterns - stop at Sample, Registered, Age
@@ -10,11 +11,11 @@ def extract_basic_info(text):
         name = re.search(r"Patient['\"]?s?\s+Name\s*:?\s*([A-Z][A-Za-z\s\.]+?)(?:Sample|Registered|Age)", text, re.IGNORECASE)
     
     # Try Age/Gender patterns
-    age_sex = re.search(r"Age\s*/\s*(?:Sex|Gender)\s*:\s*(\d+)\s*(?:Year|Yr).*?/\s*(Male|Female|M|F)", text, re.IGNORECASE)
+    age_sex = re.search(r"Age\s*/\s*(?:Sex|Gender)\s*:\s*(\d+)\s*(?:Years?|Yrs?)?.*?/\s*(Male|Female|M|F)", text, re.IGNORECASE)
     if not age_sex:
-        age_sex = re.search(r"Age/Gender\s*:\s*(\d+)\s*years?\s*/\s*(Male|Female|M|F)", text, re.IGNORECASE)
+        age_sex = re.search(r"Age/Gender\s*:\s*(\d+)\s*(?:Years?|Yrs?)?\s*/\s*(Male|Female|M|F)", text, re.IGNORECASE)
     if not age_sex:
-        age_sex = re.search(r"Age\s*:\s*(\d+).*?(?:Sex|Gender)\s*:\s*(Male|Female|M|F)", text, re.IGNORECASE)
+        age_sex = re.search(r"Age\s*:\s*(\d+)\s*(?:Years?|Yrs?)?.*?(?:Sex|Gender)\s*:\s*(Male|Female|M|F)", text, re.IGNORECASE)
     
     return {
         "Name": name.group(1).strip().rstrip('.').strip() if name else "",
@@ -33,7 +34,7 @@ def extract_cbc(text):
     
     # Test definitions
     test_defs = [
-        (r'hemoglobin.*\bhb\b|\bhb\b.*hemoglobin', 'HB', 5.0, 20.0, ['hba1c']),
+        (r'hemoglobin|\bhb\b', 'HB', 5.0, 20.0, ['hba1c']),
         (r'red blood cell|\brbc\b|total rbc', 'RBC', 2.0, 7.0, []),
         (r'hematocrit|hct\b|pcv\b', 'HCT', 20.0, 60.0, ['mchc']),
         (r'mean cell volume|mcv\b', 'MCV', 50.0, 110.0, ['mchc']),
@@ -65,22 +66,9 @@ def extract_cbc(text):
     
     # Try to extract values from same line first
     for test_name, min_val, max_val, line_num, line in tests_found:
-        # Get rightmost numbers from test line
-        numbers = re.findall(r'\b(\d+\.?\d*)\b', line)
-        
-        for num in reversed(numbers):
-            # Skip if DIRECTLY part of a range (number-number pattern)
-            if re.search(r'\d+\.?\d*\s*[-–]\s*' + re.escape(num) + r'(?!\d)', line) or \
-               re.search(r'(?<!\d)' + re.escape(num) + r'\s*[-–]\s*\d+\.?\d*', line):
-                continue
-            
-            try:
-                val = float(num)
-                if min_val <= val <= max_val:
-                    data[test_name] = num
-                    break
-            except:
-                pass
+        val = extract_value_from_line(line, min_val, max_val)
+        if val:
+            data[test_name] = val
     
     # For tests still missing values, collect from next-line vertical column
     missing_tests = [(t, mn, mx, ln) for t, mn, mx, ln, _ in tests_found if not data[t]]

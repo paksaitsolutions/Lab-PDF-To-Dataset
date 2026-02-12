@@ -7,7 +7,8 @@ import zipfile
 from unittest.mock import patch, MagicMock
 
 # Add the parent directory to the path to import the app
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add the lab_pdf_to_dataset directory to the path to import the app
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lab_pdf_to_dataset'))
 
 from app import app
 
@@ -55,7 +56,7 @@ class TestFlaskApp:
     def test_upload_pdf_processing(self, mock_extract_cbc, mock_read_pdf, client):
         """Test upload endpoint with PDF processing"""
         # Mock the PDF reading and extraction
-        mock_read_pdf.return_value = "Patient Name: Test User\nAge/Sex: 25 years/Male\nHB: 12.5"
+        mock_read_pdf.return_value = "Patient Name: Test User\nAge/Sex: 25 years/Male\nHemoglobin: 12.5 g/dL"
         mock_extract_cbc.return_value = {
             'Name': 'Test User',
             'Age': '25',

@@ -1,0 +1,53 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.11, pytest-9.0.1, pluggy-1.6.0 -- C:\Users\chzaf\AppData\Local\Programs\Python\Python310\python.exe
+cachedir: .pytest_cache
+rootdir: D:\Lab-PDF-To-Dataset
+plugins: anyio-4.10.0
+collecting ... collected 8 items / 7 deselected / 1 selected
+
+tests/test_app.py::TestFlaskApp::test_upload_pdf_processing FAILED       [100%]
+
+================================== FAILURES ===================================
+___________________ TestFlaskApp.test_upload_pdf_processing ___________________
+
+self = <tests.test_app.TestFlaskApp object at 0x0000020A23F84BB0>
+mock_extract_cbc = <MagicMock name='extract_cbc' id='2242576406640'>
+mock_read_pdf = <MagicMock name='read_pdf_text' id='2242576646784'>
+client = <FlaskClient <Flask 'app'>>
+
+    @patch('app.read_pdf_text')
+    @patch('app.extract_cbc')
+    def test_upload_pdf_processing(self, mock_extract_cbc, mock_read_pdf, client):
+        """Test upload endpoint with PDF processing"""
+        # Mock the PDF reading and extraction
+        mock_read_pdf.return_value = "Patient Name: Test User\nAge/Sex: 25 years/Male\nHB: 12.5"
+        mock_extract_cbc.return_value = {
+            'Name': 'Test User',
+            'Age': '25',
+            'Gender': 'Male',
+            'HB': '12.5',
+            'RBC': '',
+            'Source_PDF': 'test.pdf'
+        }
+    
+        # Create a temporary PDF file
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp.write(b"Mock PDF content")
+            tmp_path = tmp.name
+    
+        try:
+            with open(tmp_path, 'rb') as test_file:
+                response = client.post('/upload',
+                                     data={'file': (test_file, 'test.pdf'),
+                                           'test_types': '{"cbc": true, "lft": false, "rft": false}'})
+    
+            assert response.status_code == 200
+            data = json.loads(response.data)
+            assert data['success'] == True
+>           assert data['cbc_count'] == 1
+E           assert 0 == 1
+
+tests\test_app.py:83: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_app.py::TestFlaskApp::test_upload_pdf_processing - assert 0...
+======================= 1 failed, 7 deselected in 2.11s =======================

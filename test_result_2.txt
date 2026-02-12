@@ -1,0 +1,46 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.3, pytest-7.4.3, pluggy-1.6.0
+rootdir: D:\Lab-PDF-To-Dataset
+plugins: anyio-4.12.0, langsmith-0.4.27, asyncio-0.21.1, cov-4.1.0, mock-3.14.1
+asyncio: mode=Mode.STRICT
+collected 4 items
+
+tests\test_extractors.py F...                                            [100%]
+
+================================== FAILURES ===================================
+_____________________ TestExtractors.test_cbc_extraction ______________________
+
+self = <tests.test_extractors.TestExtractors object at 0x000001C5BD4D0550>
+
+    def test_cbc_extraction(self):
+        text = """
+        Patient Name: John Doe
+        Age: 30 Years / Sex: Male
+        Hemoglobin 14.5 g/dL
+        RBC Count 5.2 mill/mm3
+        HCT 42.0 %
+        MCV 85.0 fL
+        MCH 29.0 pg
+        MCHC 33.0 g/dL
+        Platelet Count 250000 /cumm
+        WBC Count 7500 /cumm
+        Neutrophils 60 %
+        Lymphocytes 30 %
+        Monocytes 5 %
+        Eosinophils 2 %
+        ESR 10 mm/hr
+        """
+        data = extract_cbc(text)
+        assert data['Name'] == 'John Doe'
+        assert data['Age'] == '30'
+        assert data['Gender'] == 'Male'
+        assert data['HB'] == '14.5'
+>       assert data['RBC'] == '5.2'
+E       AssertionError: assert '3' == '5.2'
+E         - 5.2
+E         + 3
+
+tests\test_extractors.py:38: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_extractors.py::TestExtractors::test_cbc_extraction - Assert...
+========================= 1 failed, 3 passed in 0.21s =========================
