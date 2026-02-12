@@ -1,5 +1,7 @@
+# TFT Extractor
 import re
 from extractors.cbc_extractor import extract_basic_info
+from utils.text_utils import extract_value_from_line
 
 
 def extract_tft(text):
@@ -13,7 +15,7 @@ def extract_tft(text):
     test_defs = [
         (r'\btotal\s*t3\b|\bt3\b|triiodothyronine', 'T3', 0.1, 10.0, ['free']),
         (r'\btotal\s*t4\b|\bt4\b|thyroxine', 'T4', 0.5, 30.0, ['free']),
-        (r'\btsh\b|thyroid\s*stimulating\s*hormone', 'TSH', 0.01, 200.0, []),
+        (r'\btsh\b|thyroid\s*stimulating\s*hormone|t\s*s\s*h', 'TSH', 0.01, 200.0, []),
         (r'\bfree\s*t3\b|\bft3\b', 'Free T3', 0.5, 30.0, []),
         (r'\bfree\s*t4\b|\bft4\b', 'Free T4', 0.1, 30.0, []),
     ]
@@ -33,18 +35,9 @@ def extract_tft(text):
         return data
 
     for test_name, min_val, max_val, _, line in tests_found:
-        numbers = re.findall(r'\b(\d+\.?\d*)\b', line)
-        for num in reversed(numbers):
-            if re.search(r'\d+\.?\d*\s*[-–]\s*' + re.escape(num) + r'(?!\d)', line) or \
-               re.search(r'(?<!\d)' + re.escape(num) + r'\s*[-–]\s*\d+\.?\d*', line):
-                continue
-            try:
-                val = float(num)
-                if min_val <= val <= max_val:
-                    data[test_name] = num
-                    break
-            except Exception:
-                pass
+        val = extract_value_from_line(line, min_val, max_val)
+        if val:
+            data[test_name] = val
 
     missing_tests = [(t, mn, mx, ln) for t, mn, mx, ln, _ in tests_found if not data[t]]
 

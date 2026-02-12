@@ -1,6 +1,7 @@
 # RFT Extractor - Hybrid approach
 import re
 from extractors.cbc_extractor import extract_basic_info
+from utils.text_utils import extract_value_from_line
 
 def extract_rft(text):
     data = extract_basic_info(text)
@@ -36,24 +37,9 @@ def extract_rft(text):
     
     # Try to extract values from same line first
     for test_name, min_val, max_val, line_num, line in tests_found:
-        numbers = re.findall(r'\b(\d+\.?\d*)\b', line)
-        
-        for num in reversed(numbers):
-            # Skip if DIRECTLY part of a range
-            if re.search(r'\d+\.?\d*\s*[-–]\s*' + re.escape(num) + r'(?!\d)', line) or \
-               re.search(r'(?<!\d)' + re.escape(num) + r'\s*[-–]\s*\d+\.?\d*', line):
-                continue
-            # Skip >= or > patterns for GFR
-            if re.search(r'[>≥]\s*=?\s*' + re.escape(num), line):
-                continue
-            
-            try:
-                val = float(num)
-                if min_val <= val <= max_val:
-                    data[test_name] = num
-                    break
-            except:
-                pass
+        val = extract_value_from_line(line, min_val, max_val)
+        if val:
+            data[test_name] = val
     
     # For tests still missing values, collect from next-line vertical column
     missing_tests = [(t, mn, mx, ln) for t, mn, mx, ln, _ in tests_found if not data[t]]
@@ -89,7 +75,7 @@ def extract_rft(text):
                     val = float(next_line_values[idx])
                     if min_val <= val <= max_val:
                         data[test_name] = next_line_values[idx]
-                except:
+                except Exception:
                     pass
     
     return data

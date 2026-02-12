@@ -2,8 +2,10 @@ pdfplumber
 pandas
 openpyxl
 pytesseract
+pdf2image
 pillow
 flask
 flask-cors
 python-docx
 pywin32
+pdf2image
