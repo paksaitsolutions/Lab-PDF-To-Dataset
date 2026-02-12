@@ -1,0 +1,118 @@
+============================= test session starts =============================
+platform win32 -- Python 3.10.11, pytest-9.0.1, pluggy-1.6.0 -- C:\Users\chzaf\AppData\Local\Programs\Python\Python310\python.exe
+cachedir: .pytest_cache
+rootdir: D:\Lab-PDF-To-Dataset
+plugins: anyio-4.10.0
+collecting ... collected 2 items
+
+tests/test_ocr_mock.py::TestOCRFallback::test_ocr_fallback FAILED        [ 50%]
+tests/test_ocr_mock.py::TestOCRFallback::test_standard_extraction_sufficient FAILED [100%]
+
+================================== FAILURES ===================================
+______________________ TestOCRFallback.test_ocr_fallback ______________________
+
+args = (<tests.test_ocr_mock.TestOCRFallback object at 0x000002C07FC69480>,)
+keywargs = {}
+
+    @wraps(func)
+    def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\unittest\mock.py:1376: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\contextlib.py:135: in __enter__
+    return next(self.gen)
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\unittest\mock.py:1358: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\contextlib.py:492: in enter_context
+    result = _cm_type.__enter__(cm)
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\unittest\mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x000002C07F80C940>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'lab_pdf_to_dataset.utils.pdf_reader' from 'D:\\Lab-PDF-To-Dataset\\lab_pdf_to_dataset\\utils\\pdf_reader.py'> does not have the attribute 'pytesseract'
+
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\unittest\mock.py:1420: AttributeError
+_____________ TestOCRFallback.test_standard_extraction_sufficient _____________
+
+self = <tests.test_ocr_mock.TestOCRFallback object at 0x000002C07FC696C0>
+mock_pdfplumber = <MagicMock name='pdfplumber' id='3025802621616'>
+
+    @patch('lab_pdf_to_dataset.utils.pdf_reader.pdfplumber')
+    def test_standard_extraction_sufficient(self, mock_pdfplumber):
+        """Test that OCR is NOT triggered when standard extraction is sufficient"""
+    
+        # Mock standard extraction to return sufficient text (>50 chars)
+        mock_pdf = MagicMock()
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = "A" * 60 # 60 chars
+        mock_pdf.pages = [mock_page]
+        mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
+    
+        # Force OCR_AVAILABLE to be True
+        with patch.object(pdf_reader, 'OCR_AVAILABLE', True):
+            # We also need to patch convert_from_path to ensure it's NOT called,
+            # but since we expect it not to be called, we can just patch it to fail if called
+>           with patch('lab_pdf_to_dataset.utils.pdf_reader.convert_from_path') as mock_convert:
+
+tests\test_ocr_mock.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\unittest\mock.py:1447: in __enter__
+    original, local = self.get_original()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <unittest.mock._patch object at 0x000002C07FDC27D0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'lab_pdf_to_dataset.utils.pdf_reader' from 'D:\\Lab-PDF-To-Dataset\\lab_pdf_to_dataset\\utils\\pdf_reader.py'> does not have the attribute 'convert_from_path'
+
+C:\Users\chzaf\AppData\Local\Programs\Python\Python310\lib\unittest\mock.py:1420: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/test_ocr_mock.py::TestOCRFallback::test_ocr_fallback - Attribute...
+FAILED tests/test_ocr_mock.py::TestOCRFallback::test_standard_extraction_sufficient
+============================== 2 failed in 0.39s ==============================
