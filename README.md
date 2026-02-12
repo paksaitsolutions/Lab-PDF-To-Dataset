@@ -16,12 +16,13 @@ Our system automates this entire process, converting hundreds of lab reports int
 
 ## Key Features
 - **Multi-Format Support**: Extract data from both PDF files and Word documents (.doc, .docx)
-- **Multiple Test Types**: Supports CBC (Complete Blood Count), LFT (Liver Function Test), and RFT (Renal Function Test)
+- **Multiple Test Types**: Supports CBC (Complete Blood Count), LFT (Liver Function Test), RFT (Renal Function Test), and TFT (Thyroid Function Test)
 - **Batch Processing**: Upload ZIP files containing multiple reports for bulk processing
 - **Web Interface**: User-friendly React-based frontend for easy file uploads
 - **Accurate Extraction**: Smart regex patterns to extract actual test results (not normal ranges)
 - **Structured Output**: Generates clean CSV files with consistent column formats
 - **Auto-Versioning**: Automatically creates new versions (dataset_1, dataset_2) to prevent overwriting
+- **Processing Audit Report**: Generates a JSON report with skipped files and reasons to improve data quality checks
 
 ## Benefits for Students
 
@@ -118,6 +119,7 @@ npm run dev
    - ZIP archive containing multiple reports
 4. **Organize by Test Type**: Place files in folders named `cbc`, `lft`, or `rft`
 5. **Download Results**: CSV files are generated in the `output/` folder
+6. **Review Audit Report**: Check `Processing_Report.json` for skipped files and error reasons
 
 ## Output Format
 
@@ -130,15 +132,34 @@ npm run dev
 ### RFT Dataset Columns
 `Name, Age, Gender, Urea, BUN, Creatinine, GFR, Uric Acid, Source_PDF`
 
+### TFT Dataset Columns
+`Name, Age, Gender, T3, T4, TSH, Free T3, Free T4, Source_PDF`
+
 ## Example Workflow
 
 1. Collect 1000 CBC lab reports (PDF/Word)
-2. Organize them in a folder named `cbc`
+2. Organize them in folders such as `cbc`, `lft`, `rft`, or `tft`
 3. Create a ZIP file
 4. Upload via web interface
-5. Receive `CBC_Dataset.csv` with 1000 rows of structured data
+5. Receive `CBC_Dataset.csv`, `LFT_Dataset.csv`, `RFT_Dataset.csv`, and `TFT_Dataset.csv` based on selected test types
 6. Import into Python/R for analysis
 7. Build ML models or perform statistical analysis
+
+
+## GitHub Pages Deployment
+
+If deploying to `https://<user>.github.io/Lab-PDF-To-Dataset/`, ensure:
+
+1. The frontend is built with a base path of `/Lab-PDF-To-Dataset/` (configured in `frontend/vite.config.js`).
+2. GitHub Actions deploys `frontend/dist` (not the repository root).
+3. You set the backend API URL for production:
+
+```bash
+# example before build
+export VITE_API_BASE_URL=https://your-backend-domain.com
+```
+
+Without `VITE_API_BASE_URL`, the frontend defaults to `http://localhost:5000`.
 
 ## Future Enhancements
 - Support for more test types (Lipid Profile, Thyroid Function, etc.)
